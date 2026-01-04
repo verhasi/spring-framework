@@ -367,14 +367,14 @@ abstract class AnnotationsScanner {
 	private static boolean hasSameGenericTypeParameters(
 			Method rootMethod, Method candidateMethod, Class<?>[] rootParameterTypes) {
 
-		Class<?> sourceDeclaringClass = rootMethod.getDeclaringClass();
+		Class<?> rootDeclaringClass = rootMethod.getDeclaringClass();
 		Class<?> candidateDeclaringClass = candidateMethod.getDeclaringClass();
-		if (!candidateDeclaringClass.isAssignableFrom(sourceDeclaringClass)) {
+		if (!candidateDeclaringClass.isAssignableFrom(rootDeclaringClass)) {
 			return false;
 		}
 		for (int i = 0; i < rootParameterTypes.length; i++) {
 			Class<?> resolvedParameterType = ResolvableType.forMethodParameter(
-					candidateMethod, i, sourceDeclaringClass).resolve();
+					candidateMethod, i, rootDeclaringClass).toClass();
 			if (rootParameterTypes[i] != resolvedParameterType) {
 				return false;
 			}
@@ -443,7 +443,7 @@ abstract class AnnotationsScanner {
 					Annotation annotation = annotations[i];
 					//noinspection DataFlowIssue
 					if (isIgnorable(annotation.annotationType()) ||
-							!AttributeMethods.forAnnotationType(annotation.annotationType()).canLoad(annotation)) {
+							!AttributeMethods.forAnnotationType(annotation.annotationType()).canLoad(annotation, source)) {
 						annotations[i] = null;
 					}
 					else {

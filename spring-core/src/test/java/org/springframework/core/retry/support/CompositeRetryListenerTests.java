@@ -21,6 +21,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.core.retry.RetryException;
 import org.springframework.core.retry.RetryListener;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.Retryable;
@@ -82,13 +83,43 @@ class CompositeRetryListenerTests {
 	}
 
 	@Test
+	void onRetryableExecution() {
+		RetryException exception = new RetryException("", new Exception());
+		compositeRetryListener.onRetryableExecution(retryPolicy, retryable, exception);
+
+		verify(listener1).onRetryableExecution(retryPolicy, retryable, exception);
+		verify(listener2).onRetryableExecution(retryPolicy, retryable, exception);
+		verify(listener3).onRetryableExecution(retryPolicy, retryable, exception);
+	}
+
+	@Test
 	void onRetryPolicyExhaustion() {
-		Exception exception = new Exception();
+		RetryException exception = new RetryException("", new Exception());
 		compositeRetryListener.onRetryPolicyExhaustion(retryPolicy, retryable, exception);
 
 		verify(listener1).onRetryPolicyExhaustion(retryPolicy, retryable, exception);
 		verify(listener2).onRetryPolicyExhaustion(retryPolicy, retryable, exception);
 		verify(listener3).onRetryPolicyExhaustion(retryPolicy, retryable, exception);
+	}
+
+	@Test
+	void onRetryPolicyInterruption() {
+		RetryException exception = new RetryException("", new Exception());
+		compositeRetryListener.onRetryPolicyInterruption(retryPolicy, retryable, exception);
+
+		verify(listener1).onRetryPolicyInterruption(retryPolicy, retryable, exception);
+		verify(listener2).onRetryPolicyInterruption(retryPolicy, retryable, exception);
+		verify(listener3).onRetryPolicyInterruption(retryPolicy, retryable, exception);
+	}
+
+	@Test
+	void onRetryPolicyTimeout() {
+		RetryException exception = new RetryException("", new Exception());
+		compositeRetryListener.onRetryPolicyTimeout(retryPolicy, retryable, exception);
+
+		verify(listener1).onRetryPolicyTimeout(retryPolicy, retryable, exception);
+		verify(listener2).onRetryPolicyTimeout(retryPolicy, retryable, exception);
+		verify(listener3).onRetryPolicyTimeout(retryPolicy, retryable, exception);
 	}
 
 }

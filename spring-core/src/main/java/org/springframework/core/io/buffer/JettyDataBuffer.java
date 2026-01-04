@@ -54,7 +54,6 @@ public final class JettyDataBuffer implements PooledDataBuffer {
 		this.bufferFactory = bufferFactory;
 		this.delegate = delegate;
 		this.chunk = chunk;
-		this.chunk.retain();
 	}
 
 	JettyDataBuffer(JettyDataBufferFactory bufferFactory, DefaultDataBuffer delegate) {
@@ -301,7 +300,7 @@ public final class JettyDataBuffer implements PooledDataBuffer {
 
 
 	@Override
-	public boolean equals(Object other) {
+	public boolean equals(@Nullable Object other) {
 		return (this == other || (other instanceof JettyDataBuffer otherBuffer &&
 				this.delegate.equals(otherBuffer.delegate)));
 	}

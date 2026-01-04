@@ -187,7 +187,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 
 	private SessionAttributeStore sessionAttributeStore = new DefaultSessionAttributeStore();
 
-	private ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
+	private ParameterNameDiscoverer parameterNameDiscoverer = DefaultParameterNameDiscoverer.getSharedInstance();
 
 	private @Nullable ConfigurableBeanFactory beanFactory;
 
@@ -671,6 +671,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 		resolvers.add(new ErrorsMethodArgumentResolver());
 		resolvers.add(new SessionStatusMethodArgumentResolver());
 		resolvers.add(new UriComponentsBuilderMethodArgumentResolver());
+		resolvers.add(new ApiVersionMethodArgumentResolver());
 		if (KotlinDetector.isKotlinPresent()) {
 			resolvers.add(new ContinuationHandlerMethodArgumentResolver());
 		}

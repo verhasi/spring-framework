@@ -16,7 +16,6 @@
 
 package org.springframework.core.type.classreading;
 
-
 import java.lang.classfile.Annotation;
 import java.lang.classfile.AnnotationElement;
 import java.lang.classfile.AnnotationValue;
@@ -25,6 +24,7 @@ import java.lang.constant.ClassDesc;
 import java.lang.reflect.Array;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -41,11 +41,15 @@ import org.springframework.util.ClassUtils;
 /**
  * Parse {@link RuntimeVisibleAnnotationsAttribute} into {@link MergedAnnotations}
  * instances.
+ *
  * @author Brian Clozel
+ * @since 7.0
  */
 abstract class ClassFileAnnotationMetadata {
 
-	static MergedAnnotations createMergedAnnotations(String className, RuntimeVisibleAnnotationsAttribute annotationAttribute, @Nullable ClassLoader classLoader) {
+	static MergedAnnotations createMergedAnnotations(
+			String className, RuntimeVisibleAnnotationsAttribute annotationAttribute, @Nullable ClassLoader classLoader) {
+
 		Set<MergedAnnotation<?>> annotations = annotationAttribute.annotations()
 				.stream()
 				.map(ann -> createMergedAnnotation(className, ann, classLoader))
@@ -55,7 +59,9 @@ abstract class ClassFileAnnotationMetadata {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static <A extends java.lang.annotation.Annotation> @Nullable MergedAnnotation<A> createMergedAnnotation(String className, Annotation annotation, @Nullable ClassLoader classLoader) {
+	private static <A extends java.lang.annotation.Annotation> @Nullable MergedAnnotation<A> createMergedAnnotation(
+			String className, Annotation annotation, @Nullable ClassLoader classLoader) {
+
 		String typeName = fromTypeDescriptor(annotation.className().stringValue());
 		if (AnnotationFilter.PLAIN.matches(typeName)) {
 			return null;
@@ -77,7 +83,9 @@ abstract class ClassFileAnnotationMetadata {
 		}
 	}
 
-	private static @Nullable Object readAnnotationValue(String className, AnnotationValue elementValue, @Nullable ClassLoader classLoader) {
+	private static @Nullable Object readAnnotationValue(
+			String className, AnnotationValue elementValue, @Nullable ClassLoader classLoader) {
+
 		switch (elementValue) {
 			case AnnotationValue.OfConstant constantValue -> {
 				return constantValue.resolvedValue();
@@ -103,6 +111,11 @@ abstract class ClassFileAnnotationMetadata {
 		classDesc.packageName() + "." + classDesc.displayName();
 	}
 
+	private static Class<?> loadClass(String className, @Nullable ClassLoader classLoader) {
+		String name = fromTypeDescriptor(className);
+		return ClassUtils.resolveClassName(name, classLoader);
+	}
+
 	private static Object parseArrayValue(String className, @Nullable ClassLoader classLoader, AnnotationValue.OfArray arrayValue) {
 		if (arrayValue.values().isEmpty()) {
 			return new Object[0];
@@ -119,10 +132,10 @@ abstract class ClassFileAnnotationMetadata {
 				return stream.map(AnnotationValue.OfLong.class::cast).mapToLong(AnnotationValue.OfLong::longValue).toArray();
 			}
 			default -> {
-				Object firstResolvedValue = readAnnotationValue(className, arrayValue.values().getFirst(), classLoader);
+				Class<?> arrayElementType = resolveArrayElementType(arrayValue.values(), classLoader);
 				return stream
 						.map(rawValue -> readAnnotationValue(className, rawValue, classLoader))
-						.toArray(s -> (Object[]) Array.newInstance(firstResolvedValue.getClass(), s));
+						.toArray(s -> (Object[]) Array.newInstance(arrayElementType, s));
 			}
 		}
 	}
@@ -139,8 +152,29 @@ abstract class ClassFileAnnotationMetadata {
 		}
 	}
 
-	record Source(Annotation entryName) {
+	private static Class<?> resolveArrayElementType(List<AnnotationValue> values, @Nullable ClassLoader classLoader) {
+		AnnotationValue firstValue = values.getFirst();
+		switch (firstValue) {
+			case AnnotationValue.OfConstant constantValue -> {
+				return constantValue.resolvedValue().getClass();
+			}
+			case AnnotationValue.OfAnnotation _ -> {
+				return MergedAnnotation.class;
+			}
+			case AnnotationValue.OfClass _ -> {
+				return String.class;
+			}
+			case AnnotationValue.OfEnum enumValue -> {
+				return loadClass(enumValue.className().stringValue(), classLoader);
+			}
+			default -> {
+				return Object.class;
+			}
+		}
+	}
 
+
+	record Source(Annotation entryName) {
 	}
 
 }

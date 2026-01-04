@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 import tools.jackson.core.JsonGenerator;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.cfg.MapperBuilder;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -32,7 +31,7 @@ import org.springframework.http.converter.AbstractJacksonHttpMessageConverter;
 /**
  * Implementation of {@link org.springframework.http.converter.HttpMessageConverter}
  * that can read and write JSON using <a href="https://github.com/FasterXML/jackson">Jackson 3.x's</a>
- * {@link ObjectMapper}.
+ * {@link JsonMapper}.
  *
  * <p>This converter can be used to bind to typed beans, or untyped
  * {@code HashMap} instances.
@@ -42,21 +41,18 @@ import org.springframework.http.converter.AbstractJacksonHttpMessageConverter;
  * can be overridden by setting the {@link #setSupportedMediaTypes supportedMediaTypes}
  * property.
  *
- * <p>The default constructor loads {@link tools.jackson.databind.JacksonModule}s
- * found by {@link MapperBuilder#findModules(ClassLoader)}.
- *
  * <p>The following hints entries are supported:
  * <ul>
- *     <li>A JSON view with a <code>com.fasterxml.jackson.annotation.JsonView</code>
+ *     <li>A JSON view with a <code>"com.fasterxml.jackson.annotation.JsonView"</code>
  *         key and the class name of the JSON view as value.</li>
- *     <li>A filter provider with a <code>tools.jackson.databind.ser.FilterProvider</code>
+ *     <li>A filter provider with a <code>"tools.jackson.databind.ser.FilterProvider"</code>
  *         key and the filter provider class name as value.</li>
  * </ul>
  *
  * @author Sebastien Deleuze
  * @since 7.0
  */
-public class JacksonJsonHttpMessageConverter extends AbstractJacksonHttpMessageConverter {
+public class JacksonJsonHttpMessageConverter extends AbstractJacksonHttpMessageConverter<JsonMapper> {
 
 	private static final List<MediaType> problemDetailMediaTypes =
 			Collections.singletonList(MediaType.APPLICATION_PROBLEM_JSON);
@@ -75,16 +71,26 @@ public class JacksonJsonHttpMessageConverter extends AbstractJacksonHttpMessageC
 	 * {@link ProblemDetailJacksonMixin}.
 	 */
 	public JacksonJsonHttpMessageConverter() {
-		super(JsonMapper.builder().addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class), DEFAULT_JSON_MIME_TYPES);
+		this(JsonMapper.builder());
 	}
 
 	/**
-	 * Construct a new instance with the provided {@link ObjectMapper}.
+	 * Construct a new instance with the provided {@link JsonMapper.Builder}
+	 * customized with the {@link tools.jackson.databind.JacksonModule}s found
+	 * by {@link MapperBuilder#findModules(ClassLoader)} and
+	 * {@link ProblemDetailJacksonMixin}.
 	 * @see JsonMapper#builder()
-	 * @see MapperBuilder#findModules(ClassLoader)
 	 */
-	public JacksonJsonHttpMessageConverter(ObjectMapper objectMapper) {
-		super(objectMapper, DEFAULT_JSON_MIME_TYPES);
+	public JacksonJsonHttpMessageConverter(JsonMapper.Builder builder) {
+		super(builder.addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class), DEFAULT_JSON_MIME_TYPES);
+	}
+
+	/**
+	 * Construct a new instance with the provided {@link JsonMapper}.
+	 * @see JsonMapper#builder()
+	 */
+	public JacksonJsonHttpMessageConverter(JsonMapper mapper) {
+		super(mapper, DEFAULT_JSON_MIME_TYPES);
 	}
 
 

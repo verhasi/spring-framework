@@ -11,17 +11,15 @@ When developing with JSPs, you typically declare an `InternalResourceViewResolve
 
 `InternalResourceViewResolver` can be used for dispatching to any Servlet resource but in
 particular for JSPs. As a best practice, we strongly encourage placing your JSP files in
-a directory under the `'WEB-INF'` directory so there can be no direct access by clients.
+a directory under the `WEB-INF` directory so there can be no direct access by clients.
 
-[source,xml,indent=0,subs="verbatim,quotes"]
-----
-	<bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
-		<property name="viewClass" value="org.springframework.web.servlet.view.JstlView"/>
-		<property name="prefix" value="/WEB-INF/jsp/"/>
-		<property name="suffix" value=".jsp"/>
-	</bean>
-----
+This is what is done by the configuration below which registers a JSP view resolver using
+a default view name prefix of `"/WEB-INF/"` and a default suffix of `".jsp"`.
 
+include-code::./WebConfiguration[tag=snippet,indent=0]
+
+[NOTE]
+You can specify custom prefix and suffix.
 
 [[mvc-view-jsp-jstl]]
 == JSPs versus JSTL

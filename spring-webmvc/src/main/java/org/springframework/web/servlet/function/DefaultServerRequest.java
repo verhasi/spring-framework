@@ -76,6 +76,7 @@ import org.springframework.web.bind.ServletRequestDataBinder;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.support.ExtendedServletRequestDataBinder;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.ServletRequestPathUtils;
 import org.springframework.web.util.UriBuilder;
@@ -246,16 +247,22 @@ class DefaultServerRequest implements ServerRequest {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public <T> T bind(Class<T> bindType, Consumer<WebDataBinder> dataBinderCustomizer) throws BindException {
+		return doBind(bindType, dataBinderCustomizer, servletRequest());
+	}
+
+	@SuppressWarnings("unchecked")
+	static <T> T doBind(
+			Class<T> bindType, Consumer<WebDataBinder> dataBinderCustomizer, HttpServletRequest servletRequest)
+			throws BindException {
+
 		Assert.notNull(bindType, "BindType must not be null");
 		Assert.notNull(dataBinderCustomizer, "DataBinderCustomizer must not be null");
 
-		ServletRequestDataBinder dataBinder = new ServletRequestDataBinder(null);
+		ServletRequestDataBinder dataBinder = new ExtendedServletRequestDataBinder(null);
 		dataBinder.setTargetType(ResolvableType.forClass(bindType));
 		dataBinderCustomizer.accept(dataBinder);
 
-		HttpServletRequest servletRequest = servletRequest();
 		dataBinder.construct(servletRequest);
 		dataBinder.bind(servletRequest);
 
@@ -660,7 +667,6 @@ class DefaultServerRequest implements ServerRequest {
 			return this.headers.headerNames();
 		}
 
-
 		// Unsupported
 
 		@Override
@@ -693,7 +699,7 @@ class DefaultServerRequest implements ServerRequest {
 			throw new UnsupportedOperationException();
 		}
 
-		// @Override - on Servlet 6.1
+		@Override
 		public void sendRedirect(String location, int sc, boolean clearBuffer) throws IOException {
 			throw new UnsupportedOperationException();
 		}
@@ -712,7 +718,6 @@ class DefaultServerRequest implements ServerRequest {
 		public void addIntHeader(String name, int value) {
 			throw new UnsupportedOperationException();
 		}
-
 
 		@Override
 		public String getCharacterEncoding() {
@@ -791,6 +796,11 @@ class DefaultServerRequest implements ServerRequest {
 
 		@Override
 		public Locale getLocale() {
+			throw new UnsupportedOperationException();
+		}
+
+		// @Override - on Servlet 6.2
+		public void sendEarlyHints() {
 			throw new UnsupportedOperationException();
 		}
 	}

@@ -171,11 +171,11 @@ Message codes and arguments for each error are also resolved via `MessageSource`
 
 | `NoResourceFoundException`
 | (default)
-|
+| `+{0}+` the request path (or portion of) used to find a resource
 
 | `TypeMismatchException`
 | (default)
-| `+{0}+` property name, `+{1}+` property value
+| `+{0}+` property name, `+{1}+` property value, `+{2}+` simple name of required type
 
 | `UnsatisfiedServletRequestParameterException`
 | (default)

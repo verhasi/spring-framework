@@ -27,7 +27,6 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonEncoding;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.JavaType;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.cfg.MapperBuilder;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -41,9 +40,6 @@ import org.springframework.util.MimeType;
 /**
  * A Jackson 3.x based {@link MessageConverter} implementation.
  *
- * <p>The default constructor loads {@link tools.jackson.databind.JacksonModule}s
- * found by {@link MapperBuilder#findModules(ClassLoader)}.
- *
  * @author Sebastien Deleuze
  * @since 7.0
  */
@@ -52,7 +48,7 @@ public class JacksonJsonMessageConverter extends AbstractMessageConverter {
 	private static final MimeType[] DEFAULT_MIME_TYPES = new MimeType[] {
 			new MimeType("application", "json"), new MimeType("application", "*+json")};
 
-	private final ObjectMapper objectMapper;
+	private final JsonMapper mapper;
 
 
 	/**
@@ -72,36 +68,58 @@ public class JacksonJsonMessageConverter extends AbstractMessageConverter {
 	 * @param supportedMimeTypes the supported MIME types
 	 */
 	public JacksonJsonMessageConverter(MimeType... supportedMimeTypes) {
-		super(supportedMimeTypes);
-		this.objectMapper = JsonMapper.builder().findAndAddModules(JacksonJsonMessageConverter.class.getClassLoader()).build();
+		this(JsonMapper.builder(), supportedMimeTypes);
 	}
 
 	/**
-	 * Construct a new instance with the provided {@link ObjectMapper}.
+	 * Construct a new instance with the provided {@link JsonMapper}.
 	 * @see JsonMapper#builder()
-	 * @see MapperBuilder#findModules(ClassLoader)
 	 */
-	public JacksonJsonMessageConverter(ObjectMapper objectMapper) {
-		this(objectMapper, DEFAULT_MIME_TYPES);
+	public JacksonJsonMessageConverter(JsonMapper mapper) {
+		this(mapper, DEFAULT_MIME_TYPES);
+	}
+
+
+	/**
+	 * Construct a new instance with the provided {@link JsonMapper.Builder} customized
+	 * with the {@link tools.jackson.databind.JacksonModule}s found
+	 * by {@link MapperBuilder#findModules(ClassLoader)}.
+	 * @see JsonMapper#builder()
+	 */
+	public JacksonJsonMessageConverter(JsonMapper.Builder builder) {
+		this(builder, DEFAULT_MIME_TYPES);
 	}
 
 	/**
-	 * Construct a new instance with the provided {@link ObjectMapper} and the
+	 * Construct a new instance with the provided {@link JsonMapper} and the
 	 * provided {@link MimeType}s.
 	 * @see JsonMapper#builder()
-	 * @see MapperBuilder#findModules(ClassLoader)
 	 */
-	public JacksonJsonMessageConverter(ObjectMapper objectMapper, MimeType... supportedMimeTypes) {
+	public JacksonJsonMessageConverter(JsonMapper mapper, MimeType... supportedMimeTypes) {
 		super(supportedMimeTypes);
-		Assert.notNull(objectMapper, "ObjectMapper must not be null");
-		this.objectMapper = objectMapper;
+		Assert.notNull(mapper, "JsonMapper must not be null");
+		this.mapper = mapper;
 	}
 
 	/**
-	 * Return the underlying {@code ObjectMapper} for this converter.
+	 * Construct a new instance with the provided {@link JsonMapper} customized
+	 * with the {@link tools.jackson.databind.JacksonModule}s found by
+	 * {@link MapperBuilder#findModules(ClassLoader)}, and the provided
+	 * {@link MimeType}s.
+	 * @see JsonMapper#builder()
 	 */
-	protected ObjectMapper getObjectMapper() {
-		return this.objectMapper;
+	public JacksonJsonMessageConverter(JsonMapper.Builder builder, MimeType... supportedMimeTypes) {
+		super(supportedMimeTypes);
+		Assert.notNull(builder, "JsonMapper.Builder must not be null");
+		this.mapper = builder.findAndAddModules(JacksonJsonMessageConverter.class.getClassLoader()).build();
+	}
+
+
+	/**
+	 * Return the underlying {@code JsonMapper} for this converter.
+	 */
+	protected JsonMapper getJsonMapper() {
+		return this.mapper;
 	}
 
 	@Override
@@ -122,7 +140,7 @@ public class JacksonJsonMessageConverter extends AbstractMessageConverter {
 
 	@Override
 	protected @Nullable Object convertFromInternal(Message<?> message, Class<?> targetClass, @Nullable Object conversionHint) {
-		JavaType javaType = this.objectMapper.constructType(getResolvedType(targetClass, conversionHint));
+		JavaType javaType = this.mapper.constructType(getResolvedType(targetClass, conversionHint));
 		Object payload = message.getPayload();
 		Class<?> view = getSerializationView(conversionHint);
 		try {
@@ -131,19 +149,19 @@ public class JacksonJsonMessageConverter extends AbstractMessageConverter {
 			}
 			else if (payload instanceof byte[] bytes) {
 				if (view != null) {
-					return this.objectMapper.readerWithView(view).forType(javaType).readValue(bytes);
+					return this.mapper.readerWithView(view).forType(javaType).readValue(bytes);
 				}
 				else {
-					return this.objectMapper.readValue(bytes, javaType);
+					return this.mapper.readValue(bytes, javaType);
 				}
 			}
 			else {
 				// Assuming a text-based source payload
 				if (view != null) {
-					return this.objectMapper.readerWithView(view).forType(javaType).readValue(payload.toString());
+					return this.mapper.readerWithView(view).forType(javaType).readValue(payload.toString());
 				}
 				else {
-					return this.objectMapper.readValue(payload.toString(), javaType);
+					return this.mapper.readValue(payload.toString(), javaType);
 				}
 			}
 		}
@@ -161,12 +179,12 @@ public class JacksonJsonMessageConverter extends AbstractMessageConverter {
 			if (byte[].class == getSerializedPayloadClass()) {
 				ByteArrayOutputStream out = new ByteArrayOutputStream(1024);
 				JsonEncoding encoding = getJsonEncoding(getMimeType(headers));
-				try (JsonGenerator generator = this.objectMapper.createGenerator(out, encoding)) {
+				try (JsonGenerator generator = this.mapper.createGenerator(out, encoding)) {
 					if (view != null) {
-						this.objectMapper.writerWithView(view).writeValue(generator, payload);
+						this.mapper.writerWithView(view).writeValue(generator, payload);
 					}
 					else {
-						this.objectMapper.writeValue(generator, payload);
+						this.mapper.writeValue(generator, payload);
 					}
 					payload = out.toByteArray();
 				}
@@ -175,10 +193,10 @@ public class JacksonJsonMessageConverter extends AbstractMessageConverter {
 				// Assuming a text-based target payload
 				Writer writer = new StringWriter(1024);
 				if (view != null) {
-					this.objectMapper.writerWithView(view).writeValue(writer, payload);
+					this.mapper.writerWithView(view).writeValue(writer, payload);
 				}
 				else {
-					this.objectMapper.writeValue(writer, payload);
+					this.mapper.writeValue(writer, payload);
 				}
 				payload = writer.toString();
 			}

@@ -26,6 +26,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -100,11 +102,79 @@ class JdkClientHttpRequestFactoryTests extends AbstractHttpRequestFactoryTests {
 	void deleteRequestWithBody() throws Exception {
 		URI uri = URI.create(baseUrl + "/echo");
 		ClientHttpRequest request = this.factory.createRequest(uri, HttpMethod.DELETE);
-		StreamUtils.copy("body", StandardCharsets.ISO_8859_1, request.getBody());
+		StreamUtils.copy("body", StandardCharsets.UTF_8, request.getBody());
 		try (ClientHttpResponse response = request.execute()) {
 			assertThat(response.getStatusCode()).as("Invalid response status").isEqualTo(HttpStatus.OK);
-			assertThat(StreamUtils.copyToString(response.getBody(), StandardCharsets.ISO_8859_1))
-					.as("Invalid request body").isEqualTo("body");
+			assertThat(response.getBody()).as("Invalid request body").hasContent("body");
+		}
+	}
+
+	@Test
+	void compressionDisabled() throws IOException {
+		URI uri = URI.create(baseUrl + "/compress/");
+		if (this.factory instanceof JdkClientHttpRequestFactory jdkClientHttpRequestFactory) {
+			jdkClientHttpRequestFactory.enableCompression(false);
+		}
+		ClientHttpRequest request = this.factory.createRequest(uri, HttpMethod.POST);
+		StreamUtils.copy("Payload to compress", StandardCharsets.UTF_8, request.getBody());
+		try (ClientHttpResponse response = request.execute()) {
+		assertThat(request.getHeaders().containsHeader("Accept-Encoding")).isFalse();
+			assertThat(response.getStatusCode()).as("Invalid response status").isEqualTo(HttpStatus.OK);
+			assertThat(response.getHeaders().containsHeader("Content-Encoding")).isTrue();
+			assertThat(StreamUtils.copyToString(response.getBody(), StandardCharsets.UTF_8))
+					.as("Body should not be decompressed")
+					.doesNotContain("Payload to compress");
+		}
+	}
+
+	@Test
+	void compressionGzip() throws IOException {
+		URI uri = URI.create(baseUrl + "/compress/gzip");
+		JdkClientHttpRequestFactory requestFactory = (JdkClientHttpRequestFactory) this.factory;
+		requestFactory.enableCompression(true);
+		ClientHttpRequest request = requestFactory.createRequest(uri, HttpMethod.POST);
+		StreamUtils.copy("Payload to compress", StandardCharsets.UTF_8, request.getBody());
+		try (ClientHttpResponse response = request.execute()) {
+			assertThat(response.getStatusCode()).as("Invalid response status").isEqualTo(HttpStatus.OK);
+			assertThat(response.getHeaders().getFirst("Content-Encoding"))
+					.as("Content Encoding should be removed").isNull();
+			assertThat(response.getHeaders().getFirst("Content-Length"))
+					.as("Content-Length should be removed").isNull();
+			assertThat(response.getBody()).as("Invalid request body").hasContent("Payload to compress");
+		}
+	}
+
+	@Test
+	void compressionDeflate() throws IOException {
+		URI uri = URI.create(baseUrl + "/compress/deflate");
+		JdkClientHttpRequestFactory requestFactory = (JdkClientHttpRequestFactory) this.factory;
+		requestFactory.enableCompression(true);
+		ClientHttpRequest request = requestFactory.createRequest(uri, HttpMethod.POST);
+		StreamUtils.copy("Payload to compress", StandardCharsets.UTF_8, request.getBody());
+		try (ClientHttpResponse response = request.execute()) {
+			assertThat(response.getStatusCode()).as("Invalid response status").isEqualTo(HttpStatus.OK);
+			assertThat(response.getHeaders().getFirst("Content-Encoding"))
+					.as("Content Encoding should be removed").isNull();
+			assertThat(response.getHeaders().getFirst("Content-Length"))
+					.as("Content-Length should be removed").isNull();
+			assertThat(response.getBody()).as("Invalid request body").hasContent("Payload to compress");
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"gzip", "deflate"})
+	void gzipCompressionWithHeadRequest(String compression) throws IOException {
+		URI uri = URI.create(baseUrl + "/headforcompress/" + compression);
+		JdkClientHttpRequestFactory requestFactory = (JdkClientHttpRequestFactory) this.factory;
+		requestFactory.enableCompression(true);
+		ClientHttpRequest request = requestFactory.createRequest(uri, HttpMethod.HEAD);
+		try (ClientHttpResponse response = request.execute()) {
+			assertThat(response.getStatusCode()).as("Invalid response status").isEqualTo(HttpStatus.OK);
+			assertThat(response.getHeaders().getFirst("Content-Encoding"))
+					.as("Content Encoding should be removed").isNull();
+			assertThat(response.getHeaders().getFirst("Content-Length"))
+					.as("Content-Length should be removed").isNull();
+			assertThat(response.getBody()).as("Invalid response body").isEmpty();
 		}
 	}
 

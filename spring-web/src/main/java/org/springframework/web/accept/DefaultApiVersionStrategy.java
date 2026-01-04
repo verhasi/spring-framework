@@ -61,9 +61,9 @@ public class DefaultApiVersionStrategy implements ApiVersionStrategy {
 	 * @param versionResolvers one or more resolvers to try; the first non-null
 	 * value returned by any resolver becomes the value used
 	 * @param versionParser parser for raw version values
-	 * @param versionRequired whether a version is required; if a request
-	 * does not have a version, and a {@code defaultVersion} is not specified,
-	 * validation fails with {@link MissingApiVersionException}
+	 * @param versionRequired whether a version is required leading to
+	 * {@link MissingApiVersionException} for requests that don't have one;
+	 * by default set to true unless there is a defaultVersion
 	 * @param defaultVersion a default version to assign to requests that
 	 * don't specify one
 	 * @param detectSupportedVersions whether to use API versions that appear in
@@ -74,20 +74,26 @@ public class DefaultApiVersionStrategy implements ApiVersionStrategy {
 	 */
 	public DefaultApiVersionStrategy(
 			List<ApiVersionResolver> versionResolvers, ApiVersionParser<?> versionParser,
-			boolean versionRequired, @Nullable String defaultVersion,
+			@Nullable Boolean versionRequired, @Nullable String defaultVersion,
 			boolean detectSupportedVersions, @Nullable Predicate<Comparable<?>> supportedVersionPredicate,
 			@Nullable ApiVersionDeprecationHandler deprecationHandler) {
 
 		Assert.notEmpty(versionResolvers, "At least one ApiVersionResolver is required");
 		Assert.notNull(versionParser, "ApiVersionParser is required");
+		Assert.isTrue(defaultVersion == null || versionRequired == null || !versionRequired,
+				"versionRequired cannot be set to true if a defaultVersion is also configured");
 
 		this.versionResolvers = new ArrayList<>(versionResolvers);
 		this.versionParser = versionParser;
-		this.versionRequired = (versionRequired && defaultVersion == null);
+		this.versionRequired = (versionRequired != null ? versionRequired : defaultVersion == null);
 		this.defaultVersion = (defaultVersion != null ? versionParser.parseVersion(defaultVersion) : null);
 		this.detectSupportedVersions = detectSupportedVersions;
 		this.supportedVersionPredicate = initSupportedVersionPredicate(supportedVersionPredicate);
 		this.deprecationHandler = deprecationHandler;
+
+		if (defaultVersion != null) {
+			addSupportedVersion(defaultVersion);
+		}
 	}
 
 	private Predicate<Comparable<?>> initSupportedVersionPredicate(@Nullable Predicate<Comparable<?>> predicate) {
@@ -161,6 +167,7 @@ public class DefaultApiVersionStrategy implements ApiVersionStrategy {
 		return this.versionParser.parseVersion(version);
 	}
 
+	@Override
 	public void validateVersion(@Nullable Comparable<?> requestVersion, HttpServletRequest request)
 			throws MissingApiVersionException, InvalidApiVersionException {
 
@@ -177,9 +184,11 @@ public class DefaultApiVersionStrategy implements ApiVersionStrategy {
 	}
 
 	@Override
-	public void handleDeprecations(Comparable<?> version, HttpServletRequest request, HttpServletResponse response) {
+	public void handleDeprecations(
+			Comparable<?> version, Object handler, HttpServletRequest request, HttpServletResponse response) {
+
 		if (this.deprecationHandler != null) {
-			this.deprecationHandler.handleVersion(version, request, response);
+			this.deprecationHandler.handleVersion(version, handler, request, response);
 		}
 	}
 

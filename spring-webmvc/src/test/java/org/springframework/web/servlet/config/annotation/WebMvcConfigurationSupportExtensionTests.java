@@ -27,7 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.beans.DirectFieldAccessor;
 import org.springframework.beans.testfixture.beans.TestBean;
@@ -212,12 +212,12 @@ class WebMvcConfigurationSupportExtensionTests {
 		List<HttpMessageConverter<?>> converters = adapter.getMessageConverters();
 		assertThat(converters).hasSize(3);
 		assertThat(converters.get(0).getClass()).isEqualTo(StringHttpMessageConverter.class);
-		assertThat(converters.get(1).getClass()).isEqualTo(AllEncompassingFormHttpMessageConverter.class);
-		assertThat(converters.get(2).getClass()).isEqualTo(JacksonJsonHttpMessageConverter.class);
-		ObjectMapper objectMapper = ((JacksonJsonHttpMessageConverter) converters.get(2)).getObjectMapper();
-		assertThat(objectMapper.deserializationConfig().isEnabled(MapperFeature.DEFAULT_VIEW_INCLUSION)).isFalse();
-		assertThat(objectMapper.deserializationConfig().isEnabled(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)).isFalse();
-		assertThat(objectMapper.serializationConfig().isEnabled(MapperFeature.DEFAULT_VIEW_INCLUSION)).isFalse();
+		assertThat(converters.get(1).getClass()).isEqualTo(JacksonJsonHttpMessageConverter.class);
+		assertThat(converters.get(2).getClass()).isEqualTo(AllEncompassingFormHttpMessageConverter.class);
+		JsonMapper jsonMapper = ((JacksonJsonHttpMessageConverter) converters.get(1)).getMapper();
+		assertThat(jsonMapper.deserializationConfig().isEnabled(MapperFeature.DEFAULT_VIEW_INCLUSION)).isFalse();
+		assertThat(jsonMapper.deserializationConfig().isEnabled(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)).isFalse();
+		assertThat(jsonMapper.serializationConfig().isEnabled(MapperFeature.DEFAULT_VIEW_INCLUSION)).isFalse();
 
 		DirectFieldAccessor fieldAccessor = new DirectFieldAccessor(adapter);
 
@@ -356,7 +356,7 @@ class WebMvcConfigurationSupportExtensionTests {
 
 		@Override
 		protected HttpMessageConverters createMessageConverters() {
-			return HttpMessageConverters.forServer().jsonMessageConverter(new JacksonJsonHttpMessageConverter()).build();
+			return HttpMessageConverters.forServer().addCustomConverter(new JacksonJsonHttpMessageConverter()).build();
 		}
 
 		@Override
@@ -394,7 +394,7 @@ class WebMvcConfigurationSupportExtensionTests {
 
 		@Override
 		public void configureApiVersioning(ApiVersionConfigurer configurer) {
-			configurer.useRequestHeader("X-API-Version").setVersionRequired(false);
+			configurer.useRequestHeader("API-Version").setVersionRequired(false);
 		}
 
 		@Override
@@ -439,6 +439,7 @@ class WebMvcConfigurationSupportExtensionTests {
 		}
 
 		@Override
+		@SuppressWarnings("serial")
 		public MessageCodesResolver getMessageCodesResolver() {
 			return new DefaultMessageCodesResolver() {
 				@Override

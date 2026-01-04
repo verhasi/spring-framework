@@ -58,7 +58,6 @@ import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedCaseInsensitiveMap;
-import org.springframework.util.StringUtils;
 
 /**
  * <b>This is the central delegate in the JDBC core package.</b>
@@ -441,7 +440,6 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	}
 
 	@Override
-	@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
 	public void execute(String sql) throws DataAccessException {
 		if (logger.isDebugEnabled()) {
 			logger.debug("Executing SQL statement [" + sql + "]");
@@ -464,7 +462,6 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	}
 
 	@Override
-	@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
 	public <T extends @Nullable Object> T query(String sql, ResultSetExtractor<T> rse) throws DataAccessException {
 		Assert.notNull(sql, "SQL must not be null");
 		Assert.notNull(rse, "ResultSetExtractor must not be null");
@@ -475,7 +472,7 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 		// Callback to execute the query.
 		class QueryStatementCallback implements StatementCallback<T>, SqlProvider {
 			@Override
-			public @Nullable T doInStatement(Statement stmt) throws SQLException {
+			public T doInStatement(Statement stmt) throws SQLException {
 				ResultSet rs = null;
 				try {
 					rs = stmt.executeQuery(sql);
@@ -495,7 +492,6 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	}
 
 	@Override
-	@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
 	public void query(String sql, RowCallbackHandler rch) throws DataAccessException {
 		query(sql, new RowCallbackHandlerResultSetExtractor(rch, this.maxRows));
 	}
@@ -544,7 +540,6 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	}
 
 	@Override
-	@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
 	public <T> List<@Nullable T> queryForList(String sql, Class<T> elementType) throws DataAccessException {
 		return query(sql, getSingleColumnRowMapper(elementType));
 	}
@@ -595,35 +590,34 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 		// Callback to execute the batch update.
 		class BatchUpdateStatementCallback implements StatementCallback<int[]>, SqlProvider {
 
-			private @Nullable String currSql;
+			private final StringBuilder currSql = new StringBuilder();
 
 			@Override
 			public int[] doInStatement(Statement stmt) throws SQLException, DataAccessException {
 				int[] rowsAffected = new int[sql.length];
 				if (JdbcUtils.supportsBatchUpdates(stmt.getConnection())) {
 					for (String sqlStmt : sql) {
-						this.currSql = appendSql(this.currSql, sqlStmt);
+						appendSql(sqlStmt);
 						stmt.addBatch(sqlStmt);
 					}
 					try {
 						rowsAffected = stmt.executeBatch();
 					}
 					catch (BatchUpdateException ex) {
-						String batchExceptionSql = null;
+						this.currSql.setLength(0);
+						int[] updateCounts = ex.getUpdateCounts();
 						for (int i = 0; i < ex.getUpdateCounts().length; i++) {
-							if (ex.getUpdateCounts()[i] == Statement.EXECUTE_FAILED) {
-								batchExceptionSql = appendSql(batchExceptionSql, sql[i]);
+							if (updateCounts[i] == Statement.EXECUTE_FAILED) {
+								appendSql(sql[i]);
 							}
-						}
-						if (StringUtils.hasLength(batchExceptionSql)) {
-							this.currSql = batchExceptionSql;
 						}
 						throw ex;
 					}
 				}
 				else {
 					for (int i = 0; i < sql.length; i++) {
-						this.currSql = sql[i];
+						this.currSql.setLength(0);
+						this.currSql.append(sql[i]);
 						if (!stmt.execute(sql[i])) {
 							rowsAffected[i] = stmt.getUpdateCount();
 						}
@@ -635,13 +629,16 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 				return rowsAffected;
 			}
 
-			private String appendSql(@Nullable String sql, String statement) {
-				return (StringUtils.hasLength(sql) ? sql + "; " + statement : statement);
+			private void appendSql(String statement) {
+				if (!this.currSql.isEmpty()) {
+					this.currSql.append("; ");
+				}
+				this.currSql.append(statement);
 			}
 
 			@Override
 			public @Nullable String getSql() {
-				return this.currSql;
+				return this.currSql.toString();
 			}
 		}
 
@@ -725,7 +722,7 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	 * @return an arbitrary result object, as returned by the ResultSetExtractor
 	 * @throws DataAccessException if there is any problem
 	 */
-	public <T> @Nullable T query(
+	public <T extends @Nullable Object> T query(
 			PreparedStatementCreator psc, @Nullable PreparedStatementSetter pss, ResultSetExtractor<T> rse)
 			throws DataAccessException {
 
@@ -751,13 +748,11 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	}
 
 	@Override
-	@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
 	public <T extends @Nullable Object> T query(PreparedStatementCreator psc, ResultSetExtractor<T> rse) throws DataAccessException {
 		return query(psc, null, rse);
 	}
 
 	@Override
-	@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
 	public <T extends @Nullable Object> T query(String sql, @Nullable PreparedStatementSetter pss, ResultSetExtractor<T> rse) throws DataAccessException {
 		return query(new SimplePreparedStatementCreator(sql), pss, rse);
 	}
@@ -779,13 +774,11 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	}
 
 	@Override
-	@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
 	public void query(PreparedStatementCreator psc, RowCallbackHandler rch) throws DataAccessException {
 		query(psc, new RowCallbackHandlerResultSetExtractor(rch, this.maxRows));
 	}
 
 	@Override
-	@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
 	public void query(String sql, @Nullable PreparedStatementSetter pss, RowCallbackHandler rch) throws DataAccessException {
 		query(sql, pss, new RowCallbackHandlerResultSetExtractor(rch, this.maxRows));
 	}
@@ -930,20 +923,17 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	}
 
 	@Override
-	@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
 	public <T> List<@Nullable T> queryForList(String sql, @Nullable Object @Nullable [] args, int[] argTypes, Class<T> elementType) throws DataAccessException {
 		return query(sql, args, argTypes, getSingleColumnRowMapper(elementType));
 	}
 
 	@Deprecated(since = "5.3")
 	@Override
-	@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
 	public <T> List<@Nullable T> queryForList(String sql, @Nullable Object @Nullable [] args, Class<T> elementType) throws DataAccessException {
 		return query(sql, newArgPreparedStatementSetter(args), getSingleColumnRowMapper(elementType));
 	}
 
 	@Override
-	@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
 	public <T> List<@Nullable T> queryForList(String sql, Class<T> elementType, @Nullable Object @Nullable ... args) throws DataAccessException {
 		return query(sql, newArgPreparedStatementSetter(args), getSingleColumnRowMapper(elementType));
 	}

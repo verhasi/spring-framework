@@ -64,18 +64,15 @@ class RetryPolicyTests {
 		}
 
 		@Test
-		void withMaxAttemptsPreconditions() {
+		void withMaxRetriesPreconditions() {
 			assertThatIllegalArgumentException()
-					.isThrownBy(() -> RetryPolicy.withMaxAttempts(0))
-					.withMessage("Max attempts must be greater than zero");
-			assertThatIllegalArgumentException()
-					.isThrownBy(() -> RetryPolicy.withMaxAttempts(-1))
-					.withMessage("Max attempts must be greater than zero");
+					.isThrownBy(() -> RetryPolicy.withMaxRetries(-1))
+					.withMessageStartingWith("Invalid maxRetries (-1)");
 		}
 
 		@Test
-		void withMaxAttempts() {
-			var policy = RetryPolicy.withMaxAttempts(5);
+		void withMaxRetries() {
+			var policy = RetryPolicy.withMaxRetries(5);
 
 			assertThat(policy.shouldRetry(new AssertionError())).isTrue();
 			assertThat(policy.shouldRetry(new IOException())).isTrue();
@@ -99,7 +96,7 @@ class RetryPolicyTests {
 					.isThrownBy(() -> RetryPolicy.builder().backOff(mock()).delay(Duration.ofMillis(10)).build())
 					.withMessage("""
 							The following configuration options are not supported with a custom BackOff strategy: \
-							maxAttempts, delay, jitter, multiplier, or maxDelay.""");
+							maxRetries, delay, jitter, multiplier, or maxDelay.""");
 		}
 
 		@Test
@@ -114,18 +111,15 @@ class RetryPolicyTests {
 		}
 
 		@Test
-		void maxAttemptsPreconditions() {
+		void maxRetriesPreconditions() {
 			assertThatIllegalArgumentException()
-					.isThrownBy(() -> RetryPolicy.builder().maxAttempts(0))
-					.withMessage("Max attempts must be greater than zero");
-			assertThatIllegalArgumentException()
-					.isThrownBy(() -> RetryPolicy.builder().maxAttempts(-1))
-					.withMessage("Max attempts must be greater than zero");
+					.isThrownBy(() -> RetryPolicy.builder().maxRetries(-1))
+					.withMessageStartingWith("Invalid maxRetries (-1)");
 		}
 
 		@Test
-		void maxAttempts() {
-			var policy = RetryPolicy.builder().maxAttempts(5).build();
+		void maxRetries() {
+			var policy = RetryPolicy.builder().maxRetries(5).build();
 
 			assertThat(policy.getBackOff())
 					.asInstanceOf(type(ExponentialBackOff.class))
@@ -138,10 +132,26 @@ class RetryPolicyTests {
 		}
 
 		@Test
+		void timeoutPreconditions() {
+			assertThatIllegalArgumentException()
+					.isThrownBy(() -> RetryPolicy.builder().timeout(Duration.ofMillis(-1)))
+					.withMessage("Invalid timeout (-1ms): must be greater than or equal to zero.");
+		}
+
+		@Test
+		void timeout() {
+			Duration timeout = Duration.ofMillis(42);
+
+			var policy = RetryPolicy.builder().timeout(timeout).build();
+
+			assertThat(policy.getTimeout()).isSameAs(timeout);
+		}
+
+		@Test
 		void delayPreconditions() {
 			assertThatIllegalArgumentException()
 					.isThrownBy(() -> RetryPolicy.builder().delay(Duration.ofMillis(-1)))
-					.withMessage("Invalid delay (-1ms): must be >= 0.");
+					.withMessage("Invalid delay (-1ms): must be greater than or equal to zero.");
 		}
 
 		@Test
@@ -162,7 +172,7 @@ class RetryPolicyTests {
 		void jitterPreconditions() {
 			assertThatIllegalArgumentException()
 					.isThrownBy(() -> RetryPolicy.builder().jitter(Duration.ofMillis(-1)))
-					.withMessage("Invalid jitter (-1ms): must be >= 0.");
+					.withMessage("Invalid jitter (-1ms): must be greater than or equal to zero.");
 		}
 
 		@Test
@@ -209,11 +219,8 @@ class RetryPolicyTests {
 		@Test
 		void maxDelayPreconditions() {
 			assertThatIllegalArgumentException()
-					.isThrownBy(() -> RetryPolicy.builder().maxDelay(Duration.ZERO))
-					.withMessage("Invalid duration (0ms): maxDelay must be positive.");
-			assertThatIllegalArgumentException()
 					.isThrownBy(() -> RetryPolicy.builder().maxDelay(Duration.ofMillis(-1)))
-					.withMessage("Invalid duration (-1ms): maxDelay must be positive.");
+					.withMessage("Invalid maxDelay (-1ms): must be greater than zero.");
 		}
 
 		@Test

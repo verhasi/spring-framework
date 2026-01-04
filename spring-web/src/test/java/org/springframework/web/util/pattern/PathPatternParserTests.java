@@ -85,8 +85,13 @@ class PathPatternParserTests {
 
 		@Test
 		void regexpSegmentIsNotWildcardSegment() {
-			// this is not double wildcard, it's / then **acb (an odd, unnecessary use of double *)
 			pathPattern = checkStructure("/**acb");
+			assertPathElements(pathPattern, SeparatorPathElement.class, RegexPathElement.class);
+
+			pathPattern = checkStructure("/a**bc");
+			assertPathElements(pathPattern, SeparatorPathElement.class, RegexPathElement.class);
+
+			pathPattern = checkStructure("/abc**");
 			assertPathElements(pathPattern, SeparatorPathElement.class, RegexPathElement.class);
 		}
 
@@ -227,7 +232,6 @@ class PathPatternParserTests {
 			checkError("/{abc}{*foobar}", 1, PatternMessage.CAPTURE_ALL_IS_STANDALONE_CONSTRUCT);
 			checkError("/{abc}{*foobar}{foo}", 1, PatternMessage.CAPTURE_ALL_IS_STANDALONE_CONSTRUCT);
 			checkError("/{*foo}/foo/{*bar}", 18, PatternMessage.CANNOT_HAVE_MANY_MULTISEGMENT_PATHELEMENTS);
-			checkError("/{*foo}/{bar}", 8, PatternMessage.MULTISEGMENT_PATHELEMENT_NOT_FOLLOWED_BY_LITERAL);
 			checkError("{foo:}", 5, PatternMessage.MISSING_REGEX_CONSTRAINT);
 			checkError("{foo}_{foo}", 0, PatternMessage.ILLEGAL_DOUBLE_CAPTURE, "foo");
 			checkError("/{bar}/{bar}", 7, PatternMessage.ILLEGAL_DOUBLE_CAPTURE, "bar");

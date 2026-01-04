@@ -81,7 +81,7 @@ final class SubscriberInputStream<T> extends InputStream implements Flow.Subscri
 
 	private final Queue<T> queue;
 
-	private final AtomicReference<Object> parkedThread = new AtomicReference<>();
+	private final AtomicReference<@Nullable Object> parkedThread = new AtomicReference<>();
 
 	private final AtomicInteger workAmount = new AtomicInteger();
 
@@ -206,7 +206,7 @@ final class SubscriberInputStream<T> extends InputStream implements Flow.Subscri
 	}
 
 	private void resume() {
-		if (this.parkedThread != READY) {
+		if (this.parkedThread.get() != READY) {
 			Object old = this.parkedThread.getAndSet(READY);
 			if (old != READY) {
 				LockSupport.unpark((Thread) old);

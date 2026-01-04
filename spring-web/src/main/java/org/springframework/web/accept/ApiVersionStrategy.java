@@ -70,17 +70,20 @@ public interface ApiVersionStrategy {
 	 */
 	default @Nullable Comparable<?> resolveParseAndValidateVersion(HttpServletRequest request) {
 		String value = resolveVersion(request);
+		Comparable<?> version;
 		if (value == null) {
-			return getDefaultVersion();
+			version = getDefaultVersion();
 		}
-		try {
-			Comparable<?> version = parseVersion(value);
-			validateVersion(version, request);
-			return version;
+		else {
+			try {
+				version = parseVersion(value);
+			}
+			catch (Exception ex) {
+				throw new InvalidApiVersionException(value, null, ex);
+			}
 		}
-		catch (Exception ex) {
-			throw new InvalidApiVersionException(value, null, ex);
-		}
+		validateVersion(version, request);
+		return version;
 	}
 
 	/**
@@ -88,10 +91,12 @@ public interface ApiVersionStrategy {
 	 * accordingly, e.g. by setting response headers to signal the deprecation,
 	 * to specify relevant dates and provide links to further details.
 	 * @param version the resolved and parsed request version
+	 * @param handler the handler chosen for the request
 	 * @param request the current request
 	 * @param response the current response
 	 * @see ApiVersionDeprecationHandler
 	 */
-	void handleDeprecations(Comparable<?> version, HttpServletRequest request, HttpServletResponse response);
+	void handleDeprecations(
+			Comparable<?> version, Object handler, HttpServletRequest request, HttpServletResponse response);
 
 }

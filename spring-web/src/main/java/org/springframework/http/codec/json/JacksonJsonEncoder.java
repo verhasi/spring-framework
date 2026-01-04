@@ -25,7 +25,6 @@ import reactor.core.publisher.Flux;
 import tools.jackson.core.PrettyPrinter;
 import tools.jackson.core.util.DefaultIndenter;
 import tools.jackson.core.util.DefaultPrettyPrinter;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.ObjectWriter;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.cfg.MapperBuilder;
@@ -44,14 +43,11 @@ import org.springframework.util.MimeType;
  * use cases, {@link Flux} elements are collected into a {@link List} before
  * serialization for performance reason.
  *
- * <p>The default constructor loads {@link tools.jackson.databind.JacksonModule}s
- * found by {@link MapperBuilder#findModules(ClassLoader)}.
- *
  * @author Sebastien Deleuze
  * @since 7.0
  * @see JacksonJsonDecoder
  */
-public class JacksonJsonEncoder extends AbstractJacksonEncoder {
+public class JacksonJsonEncoder extends AbstractJacksonEncoder<JsonMapper> {
 
 	private static final List<MimeType> problemDetailMimeTypes =
 			Collections.singletonList(MediaType.APPLICATION_PROBLEM_JSON);
@@ -73,28 +69,46 @@ public class JacksonJsonEncoder extends AbstractJacksonEncoder {
 	 * {@link ProblemDetailJacksonMixin}.
 	 */
 	public JacksonJsonEncoder() {
-		super(JsonMapper.builder().addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class),
-				DEFAULT_JSON_MIME_TYPES);
+		this(JsonMapper.builder(), DEFAULT_JSON_MIME_TYPES);
+	}
+
+	/**
+	 * Construct a new instance with a {@link JsonMapper.Builder} customized
+	 * with the {@link tools.jackson.databind.JacksonModule}s found by
+	 * {@link MapperBuilder#findModules(ClassLoader)} and
+	 * {@link ProblemDetailJacksonMixin}.
+	 * @see JsonMapper#builder()
+	 */
+	public JacksonJsonEncoder(JsonMapper.Builder builder) {
+		this(builder, DEFAULT_JSON_MIME_TYPES);
+	}
+
+	/**
+	 * Construct a new instance with the provided {@link JsonMapper}.
+	 */
+	public JacksonJsonEncoder(JsonMapper mapper) {
+		this(mapper, DEFAULT_JSON_MIME_TYPES);
+	}
+
+	/**
+	 * Construct a new instance with the provided {@link JsonMapper.Builder} customized
+	 * with the {@link tools.jackson.databind.JacksonModule}s found by
+	 * {@link MapperBuilder#findModules(ClassLoader)} and
+	 * {@link ProblemDetailJacksonMixin}, and {@link MimeType}s.
+	 * @see JsonMapper#builder()
+	 */
+	public JacksonJsonEncoder(JsonMapper.Builder builder, MimeType... mimeTypes) {
+		super(builder.addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class), mimeTypes);
 		setStreamingMediaTypes(List.of(MediaType.APPLICATION_NDJSON));
 		this.ssePrettyPrinter = initSsePrettyPrinter();
 	}
 
 	/**
-	 * Construct a new instance with the provided {@link ObjectMapper}.
-	 * @see JsonMapper#builder()
-	 * @see MapperBuilder#findModules(ClassLoader)
-	 */
-	public JacksonJsonEncoder(ObjectMapper mapper) {
-		this(mapper, DEFAULT_JSON_MIME_TYPES);
-	}
-
-	/**
-	 * Construct a new instance with the provided {@link ObjectMapper} and
+	 * Construct a new instance with the provided {@link JsonMapper} and
 	 * {@link MimeType}s.
 	 * @see JsonMapper#builder()
-	 * @see MapperBuilder#findModules(ClassLoader)
 	 */
-	public JacksonJsonEncoder(ObjectMapper mapper, MimeType... mimeTypes) {
+	public JacksonJsonEncoder(JsonMapper mapper, MimeType... mimeTypes) {
 		super(mapper, mimeTypes);
 		setStreamingMediaTypes(List.of(MediaType.APPLICATION_NDJSON));
 		this.ssePrettyPrinter = initSsePrettyPrinter();
@@ -106,6 +120,11 @@ public class JacksonJsonEncoder extends AbstractJacksonEncoder {
 		return printer;
 	}
 
+
+	@Override
+	public boolean canEncode(ResolvableType elementType, @Nullable MimeType mimeType) {
+		return super.canEncode(elementType, mimeType) && !String.class.isAssignableFrom(elementType.toClass());
+	}
 
 	@Override
 	protected List<MimeType> getMediaTypesForProblemDetail() {

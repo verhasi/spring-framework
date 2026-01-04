@@ -103,12 +103,12 @@ public class PathEditor extends PropertyEditorSupport {
 		if (resource == null) {
 			setValue(null);
 		}
-		else if (nioPathCandidate && !resource.exists()) {
+		else if (nioPathCandidate && (!resource.isFile() || !resource.exists())) {
 			setValue(Paths.get(text).normalize());
 		}
 		else {
 			try {
-				setValue(resource.getFile().toPath());
+				setValue(resource.getFilePath());
 			}
 			catch (IOException ex) {
 				String msg = "Could not resolve \"" + text + "\" to 'java.nio.file.Path' for " + resource + ": " +

@@ -293,6 +293,8 @@ final class DefaultRestClient implements RestClient {
 
 	private class DefaultRequestBodyUriSpec implements RequestBodyUriSpec {
 
+		private static final Object NO_VERSION = new Object();
+
 		private final HttpMethod httpMethod;
 
 		private @Nullable URI uri;
@@ -430,8 +432,8 @@ final class DefaultRestClient implements RestClient {
 		}
 
 		@Override
-		public RequestBodySpec apiVersion(Object version) {
-			this.apiVersion = version;
+		public RequestBodySpec apiVersion(@Nullable Object version) {
+			this.apiVersion = (version != null ? version : NO_VERSION);
 			return this;
 		}
 
@@ -646,7 +648,15 @@ final class DefaultRestClient implements RestClient {
 		}
 
 		private @Nullable Object getApiVersionOrDefault() {
-			return (this.apiVersion != null ? this.apiVersion : DefaultRestClient.this.defaultApiVersion);
+			if (this.apiVersion == null) {
+				return DefaultRestClient.this.defaultApiVersion;
+			}
+			else if (this.apiVersion == NO_VERSION) {
+				return null;
+			}
+			else {
+				return this.apiVersion;
+			}
 		}
 
 		private @Nullable String serializeCookies() {
@@ -775,7 +785,7 @@ final class DefaultRestClient implements RestClient {
 		DefaultResponseSpec(RequestHeadersSpec<?> requestHeadersSpec) {
 			this.requestHeadersSpec = requestHeadersSpec;
 			this.statusHandlers.addAll(DefaultRestClient.this.defaultStatusHandlers);
-			this.statusHandlers.add(StatusHandler.defaultHandler(DefaultRestClient.this.messageConverters));
+			this.statusHandlers.add(StatusHandler.createDefaultStatusHandler(DefaultRestClient.this.messageConverters));
 			this.defaultStatusHandlerCount = this.statusHandlers.size();
 		}
 
@@ -803,13 +813,13 @@ final class DefaultRestClient implements RestClient {
 		}
 
 		@Override
-		@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
+		@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1290
 		public <T> @Nullable T body(Class<T> bodyType) {
 			return executeAndExtract((request, response) -> readBody(request, response, bodyType, bodyType, this.hints));
 		}
 
 		@Override
-		@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1075
+		@SuppressWarnings("NullAway") // See https://github.com/uber/NullAway/issues/1290
 		public <T> @Nullable T body(ParameterizedTypeReference<T> bodyType) {
 			Type type = bodyType.getType();
 			Class<T> bodyClass = bodyClass(type);
@@ -886,7 +896,10 @@ final class DefaultRestClient implements RestClient {
 			return this.requestHeadersSpec.exchange(exchangeFunction);
 		}
 
-		private <T> @Nullable T readBody(HttpRequest request, ClientHttpResponse response, Type bodyType, Class<T> bodyClass, @Nullable Map<String, Object> hints) {
+		private <T> @Nullable T readBody(
+				HttpRequest request, ClientHttpResponse response, Type bodyType, Class<T> bodyClass,
+				@Nullable Map<String, Object> hints) {
+
 			return DefaultRestClient.this.readWithMessageConverters(
 					response, () -> applyStatusHandlers(request, response), bodyType, bodyClass, hints);
 
@@ -923,6 +936,31 @@ final class DefaultRestClient implements RestClient {
 		}
 
 		@Override
+		public HttpStatusCode getStatusCode() throws IOException {
+			return this.delegate.getStatusCode();
+		}
+
+		@Override
+		public String getStatusText() throws IOException {
+			return this.delegate.getStatusText();
+		}
+
+		@Override
+		public HttpHeaders getHeaders() {
+			return this.delegate.getHeaders();
+		}
+
+		@Override
+		public InputStream getBody() throws IOException {
+			return this.delegate.getBody();
+		}
+
+		@Override
+		public void close() {
+			this.delegate.close();
+		}
+
+		@Override
 		public <T> @Nullable T bodyTo(Class<T> bodyType) {
 			return readWithMessageConverters(this.delegate, () -> {} , bodyType, bodyType, this.hints);
 		}
@@ -935,28 +973,8 @@ final class DefaultRestClient implements RestClient {
 		}
 
 		@Override
-		public InputStream getBody() throws IOException {
-			return this.delegate.getBody();
-		}
-
-		@Override
-		public HttpHeaders getHeaders() {
-			return this.delegate.getHeaders();
-		}
-
-		@Override
-		public HttpStatusCode getStatusCode() throws IOException {
-			return this.delegate.getStatusCode();
-		}
-
-		@Override
-		public String getStatusText() throws IOException {
-			return this.delegate.getStatusText();
-		}
-
-		@Override
-		public void close() {
-			this.delegate.close();
+		public RestClientResponseException createException() throws IOException {
+			return StatusHandler.createException(this, DefaultRestClient.this.messageConverters);
 		}
 	}
 

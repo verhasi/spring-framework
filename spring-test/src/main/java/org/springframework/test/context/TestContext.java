@@ -102,7 +102,22 @@ public interface TestContext extends AttributeAccessor, Serializable {
 
 	/**
 	 * Get the {@linkplain Class test class} for this test context.
+	 * <p>Since JUnit Jupiter 5.12, if the
+	 * {@link org.springframework.test.context.junit.jupiter.SpringExtension
+	 * SpringExtension} is used with a {@linkplain
+	 * org.junit.jupiter.api.extension.TestInstantiationAwareExtension.ExtensionContextScope#TEST_METHOD
+	 * test-method scoped} {@link org.junit.jupiter.api.extension.ExtensionContext
+	 * ExtensionContext}, the {@code Class} returned from this method may refer
+	 * to the test class for the current {@linkplain #getTestMethod() test method},
+	 * which may be a {@link org.junit.jupiter.api.Nested @Nested} test class
+	 * within the class for the {@linkplain #getTestInstance() test instance}.
+	 * Thus, if you need consistent access to the class for the current test
+	 * instance within an implementation of
+	 * {@link TestExecutionListener#prepareTestInstance(TestContext)}, you should
+	 * invoke {@code testContext.getTestInstance().getClass()} instead of
+	 * {@code testContext.getTestClass()}.
 	 * @return the test class (never {@code null})
+	 * @see org.springframework.test.context.junit.jupiter.SpringExtensionConfig @SpringExtensionConfig
 	 */
 	Class<?> getTestClass();
 
@@ -135,8 +150,8 @@ public interface TestContext extends AttributeAccessor, Serializable {
 	 * Call this method to signal that the {@linkplain #getTestClass() test class}
 	 * is no longer using the {@linkplain ApplicationContext application context}
 	 * associated with this test context.
-	 * <p>This informs the context cache that the application context can be
-	 * safely {@linkplain org.springframework.context.Lifecycle#stop() stopped}
+	 * <p>This informs the context cache that the application context can be safely
+	 * {@linkplain org.springframework.context.ConfigurableApplicationContext#pause() paused}
 	 * if no other test classes are actively using the same application context.
 	 * <p>This method is intended to be invoked after execution of the test class
 	 * has ended and should not be invoked unless the application context for this

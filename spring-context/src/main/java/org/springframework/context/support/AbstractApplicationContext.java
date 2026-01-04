@@ -76,6 +76,7 @@ import org.springframework.context.expression.StandardBeanExpressionResolver;
 import org.springframework.context.weaving.LoadTimeWeaverAware;
 import org.springframework.context.weaving.LoadTimeWeaverAwareProcessor;
 import org.springframework.core.NativeDetector;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.convert.ConversionService;
@@ -622,10 +623,20 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				finishRefresh();
 			}
 
-			catch (RuntimeException | Error ex ) {
+			catch (RuntimeException | Error ex) {
 				if (logger.isWarnEnabled()) {
 					logger.warn("Exception encountered during context initialization - " +
 							"cancelling refresh attempt: " + ex);
+				}
+
+				// Stop already started Lifecycle beans to avoid dangling resources.
+				if (this.lifecycleProcessor != null && this.lifecycleProcessor.isRunning()) {
+					try {
+						this.lifecycleProcessor.stop();
+					}
+					catch (Throwable ex2) {
+						logger.warn("Exception thrown from LifecycleProcessor on cancelled refresh", ex2);
+					}
 				}
 
 				// Destroy already created singletons to avoid dangling resources.
@@ -928,6 +939,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	@SuppressWarnings("unchecked")
 	protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
+		// Mark current thread for singleton instantiation with applied bootstrap locking.
+		beanFactory.prepareSingletonBootstrap();
+
 		// Initialize bootstrap executor for this context.
 		if (beanFactory.containsBean(BOOTSTRAP_EXECUTOR_BEAN_NAME) &&
 				beanFactory.isTypeMatch(BOOTSTRAP_EXECUTOR_BEAN_NAME, Executor.class)) {
@@ -1296,6 +1310,12 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 	@Override
 	public <T> ObjectProvider<T> getBeanProvider(ResolvableType requiredType) {
+		assertBeanFactoryActive();
+		return getBeanFactory().getBeanProvider(requiredType);
+	}
+
+	@Override
+	public <T> ObjectProvider<T> getBeanProvider(ParameterizedTypeReference<T> requiredType) {
 		assertBeanFactoryActive();
 		return getBeanFactory().getBeanProvider(requiredType);
 	}

@@ -53,6 +53,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.core.io.Resource;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ReflectionUtils;
 
@@ -264,6 +265,7 @@ public class LocalValidatorFactoryBean extends SpringValidatorAdapter
 		if (this.applicationContext != null) {
 			try {
 				Method eclMethod = configuration.getClass().getMethod("externalClassLoader", ClassLoader.class);
+				eclMethod = ClassUtils.getPubliclyAccessibleMethodIfPossible(eclMethod, configuration.getClass());
 				ReflectionUtils.invokeMethod(eclMethod, configuration, this.applicationContext.getClassLoader());
 			}
 			catch (NoSuchMethodException ignored) {
@@ -283,8 +285,9 @@ public class LocalValidatorFactoryBean extends SpringValidatorAdapter
 
 		ConstraintValidatorFactory targetConstraintValidatorFactory = this.constraintValidatorFactory;
 		if (targetConstraintValidatorFactory == null && this.applicationContext != null) {
-			targetConstraintValidatorFactory =
-					new SpringConstraintValidatorFactory(this.applicationContext.getAutowireCapableBeanFactory());
+			targetConstraintValidatorFactory = new SpringConstraintValidatorFactory(
+					this.applicationContext.getAutowireCapableBeanFactory(),
+					configuration.getDefaultConstraintValidatorFactory());
 		}
 		if (targetConstraintValidatorFactory != null) {
 			configuration.constraintValidatorFactory(targetConstraintValidatorFactory);

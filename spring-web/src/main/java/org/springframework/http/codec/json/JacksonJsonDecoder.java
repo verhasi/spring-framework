@@ -25,7 +25,6 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.cfg.MapperBuilder;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -43,14 +42,11 @@ import org.springframework.util.MimeTypeUtils;
  * <a href="https://github.com/FasterXML/jackson">Jackson 3.x</a>
  * leveraging non-blocking parsing.
  *
- * <p>The default constructor loads {@link tools.jackson.databind.JacksonModule}s
- * found by {@link MapperBuilder#findModules(ClassLoader)}.
- *
  * @author Sebastien Deleuze
  * @since 7.0
  * @see JacksonJsonEncoder
  */
-public class JacksonJsonDecoder extends AbstractJacksonDecoder {
+public class JacksonJsonDecoder extends AbstractJacksonDecoder<JsonMapper> {
 
 	private static final CharBufferDecoder CHAR_BUFFER_DECODER = CharBufferDecoder.textPlainOnly(Arrays.asList(",", "\n"), false);
 
@@ -73,21 +69,44 @@ public class JacksonJsonDecoder extends AbstractJacksonDecoder {
 	}
 
 	/**
-	 * Construct a new instance with the provided {@link ObjectMapper}.
+	 * Construct a new instance with the provided {@link JsonMapper.Builder}
+	 * customized with the {@link tools.jackson.databind.JacksonModule}s
+	 * found by {@link MapperBuilder#findModules(ClassLoader)}.
 	 * @see JsonMapper#builder()
-	 * @see MapperBuilder#findModules(ClassLoader)
 	 */
-	public JacksonJsonDecoder(ObjectMapper mapper) {
-		this(mapper, DEFAULT_JSON_MIME_TYPES);
+	public JacksonJsonDecoder(JsonMapper.Builder builder) {
+		super(builder, DEFAULT_JSON_MIME_TYPES);
 	}
 
 	/**
-	 * Construct a new instance with the provided {@link ObjectMapper} and {@link MimeType}s.
+	 * Construct a new instance with the provided {@link JsonMapper}.
 	 * @see JsonMapper#builder()
-	 * @see MapperBuilder#findModules(ClassLoader)
 	 */
-	public JacksonJsonDecoder(ObjectMapper mapper, MimeType... mimeTypes) {
+	public JacksonJsonDecoder(JsonMapper mapper) {
+		super(mapper, DEFAULT_JSON_MIME_TYPES);
+	}
+
+	/**
+	 * Construct a new instance with the provided {@link JsonMapper.Builder}
+	 * customized with the {@link tools.jackson.databind.JacksonModule}s
+	 * found by {@link MapperBuilder#findModules(ClassLoader)}, and
+	 * {@link MimeType}s.
+	 * @see JsonMapper#builder()
+	 */
+	public JacksonJsonDecoder(JsonMapper.Builder builder, MimeType... mimeTypes) {
+		super(builder, mimeTypes);
+	}
+
+	/**
+	 * Construct a new instance with the provided {@link JsonMapper} and {@link MimeType}s.
+	 */
+	public JacksonJsonDecoder(JsonMapper mapper, MimeType... mimeTypes) {
 		super(mapper, mimeTypes);
+	}
+
+	@Override
+	public boolean canDecode(ResolvableType elementType, @Nullable MimeType mimeType) {
+		return super.canDecode(elementType, mimeType) && !CharSequence.class.isAssignableFrom(elementType.toClass());
 	}
 
 	@Override

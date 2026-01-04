@@ -41,7 +41,7 @@ import org.springframework.util.MimeType;
  * @see JacksonCborDecoder
  * @see <a href="https://github.com/spring-projects/spring-framework/issues/20513">Add CBOR support to WebFlux</a>
  */
-public class JacksonCborEncoder extends AbstractJacksonEncoder {
+public class JacksonCborEncoder extends AbstractJacksonEncoder<CBORMapper> {
 
 	/**
 	 * Construct a new instance with a {@link CBORMapper} customized with the
@@ -53,18 +53,37 @@ public class JacksonCborEncoder extends AbstractJacksonEncoder {
 	}
 
 	/**
+	 * Construct a new instance with the provided {@link CBORMapper.Builder}
+	 * customized with the {@link tools.jackson.databind.JacksonModule}s
+	 * found by {@link MapperBuilder#findModules(ClassLoader)}.
+	 * @see CBORMapper#builder()
+	 */
+	public JacksonCborEncoder(CBORMapper.Builder builder) {
+		super(builder, MediaType.APPLICATION_CBOR);
+	}
+
+	/**
 	 * Construct a new instance with the provided {@link CBORMapper}.
 	 * @see CBORMapper#builder()
-	 * @see MapperBuilder#findAndAddModules(ClassLoader)
 	 */
 	public JacksonCborEncoder(CBORMapper mapper) {
 		super(mapper, MediaType.APPLICATION_CBOR);
 	}
 
 	/**
+	 * Construct a new instance with the provided {@link CBORMapper.Builder}
+	 * customized with the {@link tools.jackson.databind.JacksonModule}s
+	 * found by {@link MapperBuilder#findModules(ClassLoader)}, and
+	 * {@link MimeType}s.
+	 * @see CBORMapper#builder()
+	 */
+	public JacksonCborEncoder(CBORMapper.Builder builder, MimeType... mimeTypes) {
+		super(builder, mimeTypes);
+	}
+
+	/**
 	 * Construct a new instance with the provided {@link CBORMapper} and {@link MimeType}s.
 	 * @see CBORMapper#builder()
-	 * @see MapperBuilder#findAndAddModules(ClassLoader)
 	 */
 	public JacksonCborEncoder(CBORMapper mapper, MimeType... mimeTypes) {
 		super(mapper, mimeTypes);

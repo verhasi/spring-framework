@@ -66,6 +66,8 @@ public class MethodParameter {
 
 	private static final Annotation[] EMPTY_ANNOTATION_ARRAY = new Annotation[0];
 
+	private static final boolean KOTLIN_REFLECT_PRESENT = KotlinDetector.isKotlinReflectPresent();
+
 
 	private final Executable executable;
 
@@ -87,7 +89,8 @@ public class MethodParameter {
 
 	private volatile Annotation @Nullable [] parameterAnnotations;
 
-	private volatile @Nullable ParameterNameDiscoverer parameterNameDiscoverer;
+	private volatile @Nullable ParameterNameDiscoverer parameterNameDiscoverer =
+			DefaultParameterNameDiscoverer.getSharedInstance();
 
 	volatile @Nullable String parameterName;
 
@@ -396,7 +399,8 @@ public class MethodParameter {
 	 */
 	public boolean isOptional() {
 		return (getParameterType() == Optional.class || Nullness.forMethodParameter(this) == Nullness.NULLABLE ||
-				(KotlinDetector.isKotlinType(getContainingClass()) && KotlinDelegate.isOptional(this)));
+				(KOTLIN_REFLECT_PRESENT && KotlinDetector.isKotlinType(getContainingClass()) &&
+						KotlinDelegate.isOptional(this)));
 	}
 
 	/**
@@ -484,7 +488,7 @@ public class MethodParameter {
 			if (this.parameterIndex < 0) {
 				Method method = getMethod();
 				paramType = (method != null ?
-						(KotlinDetector.isKotlinType(getContainingClass()) ?
+						(KOTLIN_REFLECT_PRESENT && KotlinDetector.isKotlinType(getContainingClass()) ?
 								KotlinDelegate.getGenericReturnType(method) : method.getGenericReturnType()) : void.class);
 			}
 			else {
@@ -512,7 +516,7 @@ public class MethodParameter {
 			if (method == null) {
 				return void.class;
 			}
-			if (KotlinDetector.isKotlinType(getContainingClass())) {
+			if (KOTLIN_REFLECT_PRESENT && KotlinDetector.isKotlinType(getContainingClass())) {
 				return KotlinDelegate.getReturnType(method);
 			}
 			return method.getReturnType();
@@ -664,6 +668,10 @@ public class MethodParameter {
 	 * <p>This method does not actually try to retrieve the parameter name at
 	 * this point; it just allows discovery to happen when the application calls
 	 * {@link #getParameterName()} (if ever).
+	 * <p>Note: As of 7.0.3, a default parameter name discoverer is available.
+	 * This init method can be used to override the default discoverer or to
+	 * suppress discovery (passing {@code null}).
+	 * @see DefaultParameterNameDiscoverer#getSharedInstance()
 	 */
 	public void initParameterNameDiscovery(@Nullable ParameterNameDiscoverer parameterNameDiscoverer) {
 		this.parameterNameDiscoverer = parameterNameDiscoverer;

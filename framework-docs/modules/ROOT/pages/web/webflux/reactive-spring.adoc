@@ -7,7 +7,7 @@ applications:
 * For server request processing there are two levels of support.
 ** xref:web/webflux/reactive-spring.adoc#webflux-httphandler[HttpHandler]: Basic contract for HTTP request handling with
 non-blocking I/O and Reactive Streams back pressure, along with adapters for Reactor Netty,
-Undertow, Tomcat, Jetty, and any Servlet container.
+Tomcat, Jetty, and any Servlet container.
 ** xref:web/webflux/reactive-spring.adoc#webflux-web-handler-api[`WebHandler` API]: Slightly higher level, general-purpose web API for
 request handling, on top of which concrete programming models such as annotated
 controllers and functional endpoints are built.
@@ -40,10 +40,6 @@ The following table describes the supported server APIs:
 | Netty API
 | {reactor-github-org}/reactor-netty[Reactor Netty]
 
-| Undertow
-| Undertow API
-| spring-web: Undertow to Reactive Streams bridge
-
 | Tomcat
 | Servlet non-blocking I/O; Tomcat API to read and write ByteBuffers vs byte[]
 | spring-web: Servlet non-blocking I/O to Reactive Streams bridge
@@ -66,10 +62,6 @@ The following table describes server dependencies (also see
 |Reactor Netty
 |io.projectreactor.netty
 |reactor-netty
-
-|Undertow
-|io.undertow
-|undertow-core
 
 |Tomcat
 |org.apache.tomcat.embed
@@ -101,30 +93,6 @@ Kotlin::
 	val handler: HttpHandler = ...
 	val adapter = ReactorHttpHandlerAdapter(handler)
 	HttpServer.create().host(host).port(port).handle(adapter).bindNow()
-----
-======
-
-*Undertow*
-[tabs]
-======
-Java::
-+
-[source,java,indent=0,subs="verbatim,quotes"]
-----
-	HttpHandler handler = ...
-	UndertowHttpHandlerAdapter adapter = new UndertowHttpHandlerAdapter(handler);
-	Undertow server = Undertow.builder().addHttpListener(port, host).setHandler(adapter).build();
-	server.start();
-----
-
-Kotlin::
-+
-[source,kotlin,indent=0,subs="verbatim,quotes"]
-----
-	val handler: HttpHandler = ...
-	val adapter = UndertowHttpHandlerAdapter(handler)
-	val server = Undertow.builder().addHttpListener(port, host).setHandler(adapter).build()
-	server.start()
 ----
 ======
 
@@ -375,10 +343,6 @@ the request, based on forwarded headers, and then removes those headers. If you 
 it as a bean with the name `forwardedHeaderTransformer`, it will be
 xref:web/webflux/reactive-spring.adoc#webflux-web-handler-api-special-beans[detected] and used.
 
-NOTE: In 5.1 `ForwardedHeaderFilter` was deprecated and superseded by
-`ForwardedHeaderTransformer` so forwarded headers can be processed earlier, before the
-exchange is created. If the filter is configured anyway, it is taken out of the list of
-filters, and `ForwardedHeaderTransformer` is used instead.
 
 [[webflux-forwarded-headers-security]]
 === Security Considerations
@@ -495,22 +459,22 @@ xref:web/webflux/config.adoc#webflux-config-message-codecs[HTTP message codecs].
 JSON and binary JSON ({jackson-github-org}/smile-format-specification[Smile]) are
 both supported when the Jackson library is present.
 
-The `Jackson2Decoder` works as follows:
+The `JacksonJsonDecoder` works as follows:
 
 * Jackson's asynchronous, non-blocking parser is used to aggregate a stream of byte chunks
 into ``TokenBuffer``'s each representing a JSON object.
-* Each `TokenBuffer` is passed to Jackson's `ObjectMapper` to create a higher level object.
+* Each `TokenBuffer` is passed to Jackson's `JsonMapper` to create a higher level object.
 * When decoding to a single-value publisher (for example, `Mono`), there is one `TokenBuffer`.
 * When decoding to a multi-value publisher (for example, `Flux`), each `TokenBuffer` is passed to
-the `ObjectMapper` as soon as enough bytes are received for a fully formed object. The
+the `JsonMapper` as soon as enough bytes are received for a fully formed object. The
 input content can be a JSON array, or any
 https://en.wikipedia.org/wiki/JSON_streaming[line-delimited JSON] format such as NDJSON,
 JSON Lines, or JSON Text Sequences.
 
-The `Jackson2Encoder` works as follows:
+The `JacksonJsonEncoder` works as follows:
 
 * For a single value publisher (for example, `Mono`), simply serialize it through the
-`ObjectMapper`.
+`JsonMapper`.
 * For a multi-value publisher with `application/json`, by default collect the values with
 `Flux#collectToList()` and then serialize the resulting collection.
 * For a multi-value publisher with a streaming media type such as
@@ -518,12 +482,12 @@ The `Jackson2Encoder` works as follows:
 flush each value individually using a
 https://en.wikipedia.org/wiki/JSON_streaming[line-delimited JSON] format. Other
 streaming media types may be registered with the encoder.
-* For SSE the `Jackson2Encoder` is invoked per event and the output is flushed to ensure
+* For SSE the `JacksonJsonEncoder` is invoked per event and the output is flushed to ensure
 delivery without delay.
 
 [NOTE]
 ====
-By default both `Jackson2Encoder` and `Jackson2Decoder` do not support elements of type
+By default both `JacksonJsonEncoder` and `JacksonJsonDecoder` do not support elements of type
 `String`. Instead the default assumption is that a string or a sequence of strings
 represent serialized JSON content, to be rendered by the `CharSequenceEncoder`. If what
 you need is to render a JSON array from `Flux<String>`, use `Flux#collectToList()` and
@@ -580,6 +544,20 @@ This requires the "com.google.protobuf:protobuf-java" library, version 3.29 and 
 The `ProtobufJsonDecoder` and `ProtobufJsonEncoder` variants support reading and writing JSON documents to and from Protobuf messages.
 They require the "com.google.protobuf:protobuf-java-util" dependency. Note, the JSON variants do not support reading stream of messages,
 see the {spring-framework-api}/http/codec/protobuf/ProtobufJsonDecoder.html[javadoc of `ProtobufJsonDecoder`] for more details.
+
+[[webflux-codecs-gson]]
+=== Google Gson
+
+Applications can use the `GsonEncoder` and `GsonDecoder` to serialize and deserialize JSON documents thanks to the https://google.github.io/gson/[Google Gson] library .
+This codec supports both JSON media types and the NDJSON format for streaming.
+
+[NOTE]
+====
+`Gson` does not support non-blocking parsing, so the `GsonDecoder` does not support deserializing
+to `Flux<*>` types. For example, if this decoder is used for deserializing a JSON stream or even a list of elements
+as a `Flux<*>`, an `UnsupportedOperationException` will be thrown at runtime.
+Applications should instead focus on deserializing bounded collections and use `Mono<List<*>>` as target types.
+====
 
 [[webflux-codecs-limits]]
 === Limits
@@ -680,7 +658,6 @@ Java::
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 	@Configuration
-	@EnableWebFlux
 	class MyConfig implements WebFluxConfigurer {
 
 		@Override
@@ -695,7 +672,6 @@ Kotlin::
 [source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
 	@Configuration
-	@EnableWebFlux
 	class MyConfig : WebFluxConfigurer {
 
 		override fun configureHttpMessageCodecs(configurer: ServerCodecConfigurer) {
