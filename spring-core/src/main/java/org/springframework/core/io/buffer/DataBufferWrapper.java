@@ -65,26 +65,8 @@ public class DataBufferWrapper extends DataBufferForwarder implements DataBuffer
 	 */
 	@Override
 	@Deprecated(since = "6.0")
-	public DataBuffer ensureCapacity(int capacity){
-		return dataBufferForwarder.ensureCapacity(capacity);
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	@Deprecated(since = "6.0")
 	public DataBuffer slice(int index, int length){
 		return dataBufferForwarder.slice(index, length);
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	@Deprecated(since = "6.0")
-	public DataBuffer retainedSlice(int index, int length){
-		return dataBufferForwarder.retainedSlice(index, length);
 	}
 
 	/**

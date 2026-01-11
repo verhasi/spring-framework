@@ -30,7 +30,16 @@ import java.util.Set;
 		"jdk.jfr/jdk.jfr.Description",
 		"javax.annotation.meta.TypeQualifierNickname",
 		"javax.annotation.meta.TypeQualifierDefault",
-		"javax.annotation.Generated"
+		"jakarta.annotation.Generated",
+		"org.springframework.context.annotation.Bean",
+		"org.springframework.core.annotation.Order",
+		"org.springframework.context.annotation.Import",
+		"org.springframework.beans.factory.annotation.Qualifier",
+		"org.springframework.context.annotation.Configuration",
+		"org.springframework.web.bind.annotation.ExceptionHandler",
+		"org.springframework.beans.factory.annotation.Autowired",
+		"org.springframework.context.annotation.ImportRuntimeHints",
+		"org.jspecify.annotations.NullUnmarked"
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 public class NonProcessedAnnotationClaimer extends AbstractProcessor {

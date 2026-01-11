@@ -4,11 +4,14 @@ apply plugin: "kotlin"
 apply plugin: "kotlinx-serialization"
 
 dependencies {
-	api(project(":spring-beans"))
+    annotationProcessor project(":framework-annotation-processor")
+    api(project(":spring-beans"))
 	api(project(":spring-core"))
 	api(project(":spring-web"))
 	api("io.projectreactor:reactor-core")
 	compileOnly("com.google.code.findbugs:jsr305")
+	compileOnly("guru.mocker.annotation:mixin-annotation:1.1.2")
+	annotationProcessor("guru.mocker.annotation:mixin-annotation-processor:1.1.2")
 	optional(project(":spring-context"))
 	optional(project(":spring-context-support"))  // for FreeMarker support
 	optional("com.fasterxml.jackson.core:jackson-databind")
