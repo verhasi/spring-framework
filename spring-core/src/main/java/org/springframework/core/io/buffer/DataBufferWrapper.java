@@ -22,7 +22,6 @@ import guru.mocker.annotation.mixin.Mixin;
 
 import org.springframework.util.Assert;
 
-
 /**
  * Provides a convenient implementation of the {@link DataBuffer} interface
  * that can be overridden to adapt the delegate.
@@ -45,10 +44,18 @@ public class DataBufferWrapper extends DataBufferForwarder implements DataBuffer
 	}
 
 	/**
-	 * Return the wrapped data buffer forwarder.
+	 * Return the wrapped delegate.
 	 */
 	public DataBuffer dataBuffer() {
-		return dataBufferForwarder;
+		return this.dataBufferForwarder;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public DataBuffer split(int index) {
+		return this.dataBufferForwarder.split(index);
 	}
 
 	/**
@@ -56,8 +63,8 @@ public class DataBufferWrapper extends DataBufferForwarder implements DataBuffer
 	 */
 	@Override
 	@Deprecated(since = "6.0")
-	public DataBuffer capacity(int capacity){
-		return dataBufferForwarder.capacity(capacity);
+	public DataBuffer capacity(int capacity) {
+		return this.dataBufferForwarder.capacity(capacity);
 	}
 
 	/**
@@ -65,8 +72,8 @@ public class DataBufferWrapper extends DataBufferForwarder implements DataBuffer
 	 */
 	@Override
 	@Deprecated(since = "6.0")
-	public DataBuffer slice(int index, int length){
-		return dataBufferForwarder.slice(index, length);
+	public DataBuffer slice(int index, int length) {
+		return this.dataBufferForwarder.slice(index, length);
 	}
 
 	/**
@@ -74,8 +81,8 @@ public class DataBufferWrapper extends DataBufferForwarder implements DataBuffer
 	 */
 	@Override
 	@Deprecated(since = "6.0")
-	public ByteBuffer asByteBuffer(){
-		return dataBufferForwarder.asByteBuffer();
+	public ByteBuffer asByteBuffer() {
+		return this.dataBufferForwarder.asByteBuffer();
 	}
 
 	/**
@@ -83,8 +90,8 @@ public class DataBufferWrapper extends DataBufferForwarder implements DataBuffer
 	 */
 	@Override
 	@Deprecated(since = "6.0")
-	public ByteBuffer asByteBuffer(int index, int length){
-		return dataBufferForwarder.asByteBuffer(index, length);
+	public ByteBuffer asByteBuffer(int index, int length) {
+		return this.dataBufferForwarder.asByteBuffer(index, length);
 	}
 
 	/**
@@ -92,7 +99,7 @@ public class DataBufferWrapper extends DataBufferForwarder implements DataBuffer
 	 */
 	@Override
 	@Deprecated(since = "6.0.5")
-	public ByteBuffer toByteBuffer(int index, int length){
-		return dataBufferForwarder.toByteBuffer(index, length);
+	public ByteBuffer toByteBuffer(int index, int length) {
+		return this.dataBufferForwarder.toByteBuffer(index, length);
 	}
 }
