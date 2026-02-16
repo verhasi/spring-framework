@@ -77,8 +77,6 @@ public class InvocableHandlerMethod extends HandlerMethod {
 
 	private @Nullable MethodValidator methodValidator;
 
-	private Class<?>[] validationGroups = EMPTY_GROUPS;
-
 
 	/**
 	 * Create an instance from a {@code HandlerMethod}.
@@ -150,8 +148,6 @@ public class InvocableHandlerMethod extends HandlerMethod {
 	 */
 	public void setMethodValidator(@Nullable MethodValidator methodValidator) {
 		this.methodValidator = methodValidator;
-		this.validationGroups = (methodValidator != null ?
-				methodValidator.determineValidationGroups(getBean(), getBridgedMethod()) : EMPTY_GROUPS);
 	}
 
 
@@ -184,14 +180,14 @@ public class InvocableHandlerMethod extends HandlerMethod {
 
 		if (shouldValidateArguments() && this.methodValidator != null) {
 			this.methodValidator.applyArgumentValidation(
-					getBean(), getBridgedMethod(), getMethodParameters(), args, this.validationGroups);
+					getBean(), getBridgedMethod(), getMethodParameters(), args, getValidationGroups());
 		}
 
 		Object returnValue = doInvoke(args);
 
 		if (shouldValidateReturnValue() && this.methodValidator != null) {
 			this.methodValidator.applyReturnValueValidation(
-					getBean(), getBridgedMethod(), getReturnType(), returnValue, this.validationGroups);
+					getBean(), getBridgedMethod(), getReturnType(), returnValue, getValidationGroups());
 		}
 
 		return returnValue;

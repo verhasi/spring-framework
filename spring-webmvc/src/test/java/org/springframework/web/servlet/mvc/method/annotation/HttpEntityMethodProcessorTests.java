@@ -30,13 +30,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -132,6 +132,26 @@ public class HttpEntityMethodProcessorTests {
 		assertThat(result.getBody()).isNull();
 	}
 
+	@Test // gh-36298
+	@SuppressWarnings("unchecked")
+	void shouldResolveEntityWithMutatedHeaders() throws Exception {
+		servletRequest.setMethod("POST");
+		servletRequest.addParameter("project", "spring%20framework");
+		servletRequest.addHeader("Content-Length", "project=spring%20framework".length());
+		servletRequest.setContentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+
+		List<HttpMessageConverter<?>> converters = new ArrayList<>();
+		converters.add(new ByteArrayHttpMessageConverter());
+		HttpEntityMethodProcessor processor = new HttpEntityMethodProcessor(converters);
+
+		Method method = getClass().getDeclaredMethod("resolveAsByteArray", RequestEntity.class);
+		MethodParameter requestEntity = new MethodParameter(method, 0);
+		HttpEntity<byte[]> result = (HttpEntity<byte[]>) processor.resolveArgument(requestEntity,
+				this.mavContainer, this.webRequest, this.binderFactory);
+
+		assertThat(result.getBody().length).isEqualTo(result.getHeaders().getContentLength());
+	}
+
 	@Test
 	void resolveGenericArgument() throws Exception {
 		String content = "[{\"name\" : \"Jad\"}, {\"name\" : \"Robert\"}]";
@@ -152,7 +172,6 @@ public class HttpEntityMethodProcessorTests {
 	}
 
 	@Test
-	@Disabled("Determine why this fails with JacksonJsonHttpMessageConverter but passes with MappingJackson2HttpMessageConverter")
 	void resolveArgumentTypeVariable() throws Exception {
 		Method method = MySimpleParameterizedController.class.getMethod("handleDto", HttpEntity.class);
 		HandlerMethod handlerMethod = new HandlerMethod(new MySimpleParameterizedController(), method);
@@ -164,7 +183,9 @@ public class HttpEntityMethodProcessorTests {
 
 		List<HttpMessageConverter<?>> converters = new ArrayList<>();
 		converters.add(new JacksonJsonHttpMessageConverter());
-		HttpEntityMethodProcessor processor = new HttpEntityMethodProcessor(converters);
+		List<Object> requestResponseBodyAdvice = new ArrayList<>();
+		requestResponseBodyAdvice.add(new ContextClassRequestBodyAdvice());
+		HttpEntityMethodProcessor processor = new HttpEntityMethodProcessor(converters, requestResponseBodyAdvice);
 
 		@SuppressWarnings("unchecked")
 		HttpEntity<SimpleBean> result = (HttpEntity<SimpleBean>)
@@ -269,6 +290,9 @@ public class HttpEntityMethodProcessorTests {
 
 	private ResponseEntity<CharSequence> handle() {
 		return null;
+	}
+
+	private void resolveAsByteArray(RequestEntity<byte[]> request) {
 	}
 
 

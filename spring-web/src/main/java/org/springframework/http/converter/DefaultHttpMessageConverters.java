@@ -122,6 +122,8 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 
 		@Nullable Consumer<HttpMessageConverter<?>> configurer;
 
+		@Nullable Consumer<List<HttpMessageConverter<?>>> convertersListConfigurer;
+
 		@Nullable HttpMessageConverter<?> kotlinJsonConverter;
 
 		@Nullable HttpMessageConverter<?> jsonConverter;
@@ -224,6 +226,11 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 
 		void addMessageConverterConfigurer(Consumer<HttpMessageConverter<?>> configurer) {
 			this.configurer = (this.configurer != null) ? configurer.andThen(this.configurer) : configurer;
+		}
+
+		void addMessageConvertersListConfigurer(Consumer<List<HttpMessageConverter<?>>> configurer) {
+			this.convertersListConfigurer = (this.convertersListConfigurer != null) ?
+					this.convertersListConfigurer.andThen(this.convertersListConfigurer) : configurer;
 		}
 
 		List<HttpMessageConverter<?>> getBaseConverters() {
@@ -383,6 +390,12 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 		}
 
 		@Override
+		public ClientBuilder disableDefaults() {
+			this.registerDefaults = false;
+			return this;
+		}
+
+		@Override
 		public ClientBuilder withStringConverter(HttpMessageConverter<?> stringConverter) {
 			setStringConverter(stringConverter);
 			return this;
@@ -443,6 +456,12 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 		}
 
 		@Override
+		public ClientBuilder configureMessageConvertersList(Consumer<List<HttpMessageConverter<?>>> configurer) {
+			addMessageConvertersListConfigurer(configurer);
+			return this;
+		}
+
+		@Override
 		public HttpMessageConverters build() {
 			if (this.registerDefaults) {
 				this.resourceConverter = new ResourceHttpMessageConverter(false);
@@ -463,6 +482,9 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 			if (this.registerDefaults) {
 				allConverters.addAll(this.getCoreConverters());
 			}
+			if (this.convertersListConfigurer != null) {
+				this.convertersListConfigurer.accept(allConverters);
+			}
 			if (this.configurer != null) {
 				allConverters.forEach(this.configurer);
 			}
@@ -476,6 +498,12 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 		@Override
 		public ServerBuilder registerDefaults() {
 			this.registerDefaults = true;
+			return this;
+		}
+
+		@Override
+		public ServerBuilder disableDefaults() {
+			this.registerDefaults = false;
 			return this;
 		}
 
@@ -540,6 +568,12 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 		}
 
 		@Override
+		public ServerBuilder configureMessageConvertersList(Consumer<List<HttpMessageConverter<?>>> configurer) {
+			addMessageConvertersListConfigurer(configurer);
+			return this;
+		}
+
+		@Override
 		public HttpMessageConverters build() {
 			if (this.registerDefaults) {
 				this.resourceConverter = new ResourceHttpMessageConverter();
@@ -563,6 +597,9 @@ class DefaultHttpMessageConverters implements HttpMessageConverters {
 			}
 			if (this.registerDefaults) {
 				allConverters.addAll(this.getCoreConverters());
+			}
+			if (this.convertersListConfigurer != null) {
+				this.convertersListConfigurer.accept(allConverters);
 			}
 			if (this.configurer != null) {
 				allConverters.forEach(this.configurer);

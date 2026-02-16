@@ -89,7 +89,7 @@ public class RetryTemplate implements RetryOperations {
 	 * @see RetryPolicy#builder()
 	 */
 	public void setRetryPolicy(RetryPolicy retryPolicy) {
-		Assert.notNull(retryPolicy, "Retry policy must not be null");
+		Assert.notNull(retryPolicy, "RetryPolicy must not be null");
 		this.retryPolicy = retryPolicy;
 	}
 
@@ -169,7 +169,7 @@ public class RetryTemplate implements RetryOperations {
 
 				logger.debug(() -> "Preparing to retry operation '%s'".formatted(retryableName));
 				retryState.increaseRetryCount();
-				this.retryListener.beforeRetry(this.retryPolicy, retryable);
+				this.retryListener.beforeRetry(this.retryPolicy, retryable, retryState);
 				try {
 					result = retryable.execute();
 				}

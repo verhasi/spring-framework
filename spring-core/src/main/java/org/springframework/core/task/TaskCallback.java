@@ -36,9 +36,30 @@ import org.jspecify.annotations.Nullable;
  * @param <E> the exception propagated, if any
  * @see SyncTaskExecutor#execute(TaskCallback)
  */
+@FunctionalInterface
 public interface TaskCallback<V extends @Nullable Object, E extends Exception> extends Callable<V> {
 
 	@Override
 	V call() throws E;
+
+
+	/**
+	 * Derive a {@link TaskCallback} from the given {@link Callable}.
+	 * @since 7.0.4
+	 */
+	static <V> TaskCallback<V, Exception> from(Callable<V> task) {
+		return task::call;
+	}
+
+	/**
+	 * Derive a {@link TaskCallback} from the given {@link Runnable}.
+	 * @since 7.0.4
+	 */
+	static TaskCallback<@Nullable Void, RuntimeException> from(Runnable task) {
+		return () -> {
+			task.run();
+			return null;
+		};
+	}
 
 }

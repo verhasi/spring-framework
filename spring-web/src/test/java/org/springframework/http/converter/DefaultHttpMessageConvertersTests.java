@@ -126,6 +126,12 @@ class DefaultHttpMessageConvertersTests {
 		}
 
 		@Test
+		void disableDefaults() {
+			var converters = HttpMessageConverters.forClient().registerDefaults().disableDefaults().build();
+			assertThat(converters).isEmpty();
+		}
+
+		@Test
 		void multipartConverterContainsOtherConverters() {
 			var converters = HttpMessageConverters.forClient().registerDefaults().build();
 			var multipartConverter = findMessageConverter(AllEncompassingFormHttpMessageConverter.class, converters);
@@ -211,6 +217,17 @@ class DefaultHttpMessageConvertersTests {
 			assertThat(customConverter.processed).isTrue();
 		}
 
+		@Test
+		void shouldAppendCustomConverterToList() {
+			var customConverter = new CustomHttpMessageConverter();
+			var messageConverters = HttpMessageConverters.forClient()
+					.registerDefaults()
+					.configureMessageConvertersList(converters -> converters.add(customConverter))
+					.build();
+
+			assertThat(messageConverters).last().isInstanceOf(CustomHttpMessageConverter.class);
+		}
+
 	}
 
 
@@ -229,6 +246,12 @@ class DefaultHttpMessageConvertersTests {
 					JacksonYamlHttpMessageConverter.class, JacksonXmlHttpMessageConverter.class,
 					KotlinSerializationProtobufHttpMessageConverter.class, AtomFeedHttpMessageConverter.class,
 					RssChannelHttpMessageConverter.class);
+		}
+
+		@Test
+		void disableDefaults() {
+			var converters = HttpMessageConverters.forServer().registerDefaults().disableDefaults().build();
+			assertThat(converters).isEmpty();
 		}
 
 		@Test
@@ -318,6 +341,17 @@ class DefaultHttpMessageConvertersTests {
 					}).build();
 
 			assertThat(customConverter.processed).isTrue();
+		}
+
+		@Test
+		void shouldAppendCustomConverterToList() {
+			var customConverter = new CustomHttpMessageConverter();
+			var messageConverters = HttpMessageConverters.forServer()
+					.registerDefaults()
+					.configureMessageConvertersList(converters -> converters.add(customConverter))
+					.build();
+
+			assertThat(messageConverters).last().isInstanceOf(CustomHttpMessageConverter.class);
 		}
 	}
 
