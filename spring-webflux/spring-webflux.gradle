@@ -10,8 +10,8 @@ dependencies {
 	api(project(":spring-web"))
 	api("io.projectreactor:reactor-core")
 	compileOnly("com.google.code.findbugs:jsr305")
-	compileOnly("guru.mocker.annotation:mixin-annotation:1.1.2")
-	annotationProcessor("guru.mocker.annotation:mixin-annotation-processor:1.1.2")
+	compileOnly("guru.mocker.annotation:mixin-annotation:1.1.6")
+	annotationProcessor("guru.mocker.annotation:mixin-annotation-processor:1.1.6")
 	optional(project(":spring-context"))
 	optional(project(":spring-context-support"))  // for FreeMarker support
 	optional("com.fasterxml.jackson.core:jackson-databind")
