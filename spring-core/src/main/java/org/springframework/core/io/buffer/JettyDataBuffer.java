@@ -21,6 +21,7 @@ import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntPredicate;
 
+import guru.mocker.annotation.mixin.Mixin;
 import org.eclipse.jetty.io.Content;
 import org.jspecify.annotations.Nullable;
 
@@ -316,37 +317,25 @@ public final class JettyDataBuffer implements PooledDataBuffer {
 				readPosition(), writePosition(), capacity());
 	}
 
+	@Mixin
+	protected static final class JettyByteBufferIterator extends ByteBufferIteratorForwarder implements ByteBufferIterator {
 
-	private static final class JettyByteBufferIterator implements ByteBufferIterator {
-
-		private final ByteBufferIterator delegate;
 
 		private final Content.Chunk chunk;
 
 		public JettyByteBufferIterator(ByteBufferIterator delegate, Content.Chunk chunk) {
+			super(delegate, chunk);
 			Assert.notNull(delegate, "Delegate must not be null");
 			Assert.notNull(chunk, "Chunk must not be null");
 
-			this.delegate = delegate;
 			this.chunk = chunk;
 			this.chunk.retain();
 		}
 
 		@Override
 		public void close() {
-			this.delegate.close();
+			super.close();
 			this.chunk.release();
 		}
-
-		@Override
-		public boolean hasNext() {
-			return this.delegate.hasNext();
-		}
-
-		@Override
-		public ByteBuffer next() {
-			return this.delegate.next();
-		}
 	}
-
 }
