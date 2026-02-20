@@ -79,6 +79,16 @@ final class UnmodifiableMultiValueMap<K,V> extends UnmodifiableMultiValueMapForw
 	}
 
 	@Override
+	public boolean equals(@Nullable Object other) {
+		return (this == other || this.multiValueMapForwarder.equals(other));
+	}
+
+	@Override
+	public int hashCode() {
+		return this.multiValueMapForwarder.hashCode();
+	}
+
+	@Override
 	public void forEach(BiConsumer<? super K, ? super List<V>> action) {
 		super.forEach((k, vs) -> action.accept(k, Collections.unmodifiableList(vs)));
 	}
