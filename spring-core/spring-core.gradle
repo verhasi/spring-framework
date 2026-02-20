@@ -120,7 +120,7 @@ dependencies {
 	testImplementation("io.micrometer:context-propagation")
 	testImplementation("io.micrometer:micrometer-observation-test")
 	testImplementation("org.mockito:mockito-core")
-	testImplementation("com.networknt:json-schema-validator");
+	testImplementation("com.networknt:json-schema-validator")
 	testImplementation("org.skyscreamer:jsonassert")
 	testImplementation("org.xmlunit:xmlunit-assertj")
 	testImplementation("org.xmlunit:xmlunit-matchers")
