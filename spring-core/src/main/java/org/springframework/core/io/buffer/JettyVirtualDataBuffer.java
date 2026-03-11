@@ -21,17 +21,20 @@ import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntPredicate;
 
+import guru.mocker.annotation.mixin.Mixin;
 import org.jspecify.annotations.Nullable;
 
 import org.springframework.util.Assert;
 
-public sealed class JettyVirtualDataBuffer implements PooledDataBuffer permits JettyDataBuffer {
+@Mixin
+public sealed class JettyVirtualDataBuffer extends JettyVirtualDataBufferForwarder implements PooledDataBuffer permits JettyDataBuffer {
 
 	final JettyDataBufferFactory bufferFactory;
 	private final DataBuffer delegate;
 	private final AtomicInteger refCount = new AtomicInteger(1);
 
 	JettyVirtualDataBuffer(JettyDataBufferFactory bufferFactory, DataBuffer delegate) {
+		super(bufferFactory, delegate);
 		Assert.notNull(delegate, "Delegate must not be null");
 
 		this.delegate = delegate;
@@ -82,31 +85,6 @@ public sealed class JettyVirtualDataBuffer implements PooledDataBuffer permits J
 	}
 
 	@Override
-	public int indexOf(IntPredicate predicate, int fromIndex) {
-		return this.delegate.indexOf(predicate, fromIndex);
-	}
-
-	@Override
-	public int lastIndexOf(IntPredicate predicate, int fromIndex) {
-		return this.delegate.lastIndexOf(predicate, fromIndex);
-	}
-
-	@Override
-	public int readableByteCount() {
-		return this.delegate.readableByteCount();
-	}
-
-	@Override
-	public int writableByteCount() {
-		return this.delegate.writableByteCount();
-	}
-
-	@Override
-	public int capacity() {
-		return this.delegate.capacity();
-	}
-
-	@Override
 	@Deprecated(since = "6.0")
 	public DataBuffer capacity(int capacity) {
 		this.delegate.capacity(capacity);
@@ -120,35 +98,15 @@ public sealed class JettyVirtualDataBuffer implements PooledDataBuffer permits J
 	}
 
 	@Override
-	public int readPosition() {
-		return this.delegate.readPosition();
-	}
-
-	@Override
 	public DataBuffer readPosition(int readPosition) {
 		this.delegate.readPosition(readPosition);
 		return this;
 	}
 
 	@Override
-	public int writePosition() {
-		return this.delegate.writePosition();
-	}
-
-	@Override
 	public DataBuffer writePosition(int writePosition) {
 		this.delegate.writePosition(writePosition);
 		return this;
-	}
-
-	@Override
-	public byte getByte(int index) {
-		return this.delegate.getByte(index);
-	}
-
-	@Override
-	public byte read() {
-		return this.delegate.read();
 	}
 
 	@Override
@@ -225,26 +183,6 @@ public sealed class JettyVirtualDataBuffer implements PooledDataBuffer permits J
 	}
 
 	@Override
-	public void toByteBuffer(int srcPos, ByteBuffer dest, int destPos, int length) {
-		this.delegate.toByteBuffer(srcPos, dest, destPos, length);
-	}
-
-	@Override
-	public ByteBufferIterator readableByteBuffers() {
-		return this.delegate.readableByteBuffers();
-	}
-
-	@Override
-	public ByteBufferIterator writableByteBuffers() {
-		return this.delegate.writableByteBuffers();
-	}
-
-	@Override
-	public String toString(int index, int length, Charset charset) {
-		return this.delegate.toString(index, length, charset);
-	}
-
-	@Override
 	public int hashCode() {
 		return this.delegate.hashCode();
 	}
@@ -260,5 +198,4 @@ public sealed class JettyVirtualDataBuffer implements PooledDataBuffer permits J
 		return String.format("JettyDataBuffer (r: %d, w: %d, c: %d)",
 				readPosition(), writePosition(), capacity());
 	}
-
 }
