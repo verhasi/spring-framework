@@ -17,9 +17,7 @@
 package org.springframework.core.io.buffer;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.IntPredicate;
 
 import guru.mocker.annotation.mixin.Mixin;
 import org.jspecify.annotations.Nullable;
