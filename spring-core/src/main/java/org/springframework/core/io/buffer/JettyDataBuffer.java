@@ -16,8 +16,6 @@
 
 package org.springframework.core.io.buffer;
 
-import java.nio.ByteBuffer;
-
 import guru.mocker.annotation.mixin.Mixin;
 import org.eclipse.jetty.io.Content;
 
