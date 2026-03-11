@@ -16,11 +16,9 @@
 
 package org.springframework.core.io.buffer;
 
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.util.function.IntPredicate;
+
+import guru.mocker.annotation.mixin.Mixin;
 
 import org.springframework.util.Assert;
 
@@ -33,229 +31,75 @@ import org.springframework.util.Assert;
  * @author Arjen Poutsma
  * @since 5.2
  */
-public class DataBufferWrapper implements DataBuffer {
-
-	private final DataBuffer delegate;
-
+@Mixin
+public class DataBufferWrapper extends DataBufferForwarder implements DataBuffer {
 
 	/**
 	 * Create a new {@code DataBufferWrapper} that wraps the given buffer.
 	 * @param delegate the buffer to wrap
 	 */
 	public DataBufferWrapper(DataBuffer delegate) {
+		super(delegate);
 		Assert.notNull(delegate, "Delegate must not be null");
-		this.delegate = delegate;
 	}
 
 	/**
 	 * Return the wrapped delegate.
 	 */
 	public DataBuffer dataBuffer() {
-		return this.delegate;
+		return this.dataBufferForwarder;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public DataBufferFactory factory() {
-		return this.delegate.factory();
+	public DataBuffer split(int index) {
+		return this.dataBufferForwarder.split(index);
 	}
 
-	@Override
-	public int indexOf(IntPredicate predicate, int fromIndex) {
-		return this.delegate.indexOf(predicate, fromIndex);
-	}
-
-	@Override
-	public int lastIndexOf(IntPredicate predicate, int fromIndex) {
-		return this.delegate.lastIndexOf(predicate, fromIndex);
-	}
-
-	@Override
-	public int readableByteCount() {
-		return this.delegate.readableByteCount();
-	}
-
-	@Override
-	public int writableByteCount() {
-		return this.delegate.writableByteCount();
-	}
-
-	@Override
-	public int capacity() {
-		return this.delegate.capacity();
-	}
-
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	@Deprecated(since = "6.0")
 	public DataBuffer capacity(int capacity) {
-		return this.delegate.capacity(capacity);
+		return this.dataBufferForwarder.capacity(capacity);
 	}
 
-	@Override
-	@Deprecated(since = "6.0")
-	public DataBuffer ensureCapacity(int capacity) {
-		return this.delegate.ensureCapacity(capacity);
-	}
-
-	@Override
-	public DataBuffer ensureWritable(int capacity) {
-		return this.delegate.ensureWritable(capacity);
-	}
-
-	@Override
-	public int readPosition() {
-		return this.delegate.readPosition();
-	}
-
-	@Override
-	public DataBuffer readPosition(int readPosition) {
-		return this.delegate.readPosition(readPosition);
-	}
-
-	@Override
-	public int writePosition() {
-		return this.delegate.writePosition();
-	}
-
-	@Override
-	public DataBuffer writePosition(int writePosition) {
-		return this.delegate.writePosition(writePosition);
-	}
-
-	@Override
-	public byte getByte(int index) {
-		return this.delegate.getByte(index);
-	}
-
-	@Override
-	public byte read() {
-		return this.delegate.read();
-	}
-
-	@Override
-	public DataBuffer read(byte[] destination) {
-		return this.delegate.read(destination);
-	}
-
-	@Override
-	public DataBuffer read(byte[] destination, int offset, int length) {
-		return this.delegate.read(destination, offset, length);
-	}
-
-	@Override
-	public DataBuffer write(byte b) {
-		return this.delegate.write(b);
-	}
-
-	@Override
-	public DataBuffer write(byte[] source) {
-		return this.delegate.write(source);
-	}
-
-	@Override
-	public DataBuffer write(byte[] source, int offset, int length) {
-		return this.delegate.write(source, offset, length);
-	}
-
-	@Override
-	public DataBuffer write(DataBuffer... buffers) {
-		return this.delegate.write(buffers);
-	}
-
-	@Override
-	public DataBuffer write(ByteBuffer... buffers) {
-		return this.delegate.write(buffers);
-	}
-
-	@Override
-	public DataBuffer write(CharSequence charSequence,
-			Charset charset) {
-		return this.delegate.write(charSequence, charset);
-	}
-
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	@Deprecated(since = "6.0")
 	public DataBuffer slice(int index, int length) {
-		return this.delegate.slice(index, length);
+		return this.dataBufferForwarder.slice(index, length);
 	}
 
-	@Override
-	@Deprecated(since = "6.0")
-	public DataBuffer retainedSlice(int index, int length) {
-		return this.delegate.retainedSlice(index, length);
-	}
-
-	@Override
-	public DataBuffer split(int index) {
-		return this.delegate.split(index);
-	}
-
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	@Deprecated(since = "6.0")
 	public ByteBuffer asByteBuffer() {
-		return this.delegate.asByteBuffer();
+		return this.dataBufferForwarder.asByteBuffer();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	@Deprecated(since = "6.0")
 	public ByteBuffer asByteBuffer(int index, int length) {
-		return this.delegate.asByteBuffer(index, length);
+		return this.dataBufferForwarder.asByteBuffer(index, length);
 	}
 
-	@Override
-	@Deprecated(since = "6.0.5")
-	public ByteBuffer toByteBuffer() {
-		return this.delegate.toByteBuffer();
-	}
-
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	@Deprecated(since = "6.0.5")
 	public ByteBuffer toByteBuffer(int index, int length) {
-		return this.delegate.toByteBuffer(index, length);
+		return this.dataBufferForwarder.toByteBuffer(index, length);
 	}
-
-	@Override
-	public void toByteBuffer(ByteBuffer dest) {
-		this.delegate.toByteBuffer(dest);
-	}
-
-	@Override
-	public void toByteBuffer(int srcPos, ByteBuffer dest, int destPos, int length) {
-		this.delegate.toByteBuffer(srcPos, dest, destPos, length);
-	}
-
-	@Override
-	public ByteBufferIterator readableByteBuffers() {
-		return this.delegate.readableByteBuffers();
-	}
-
-	@Override
-	public ByteBufferIterator writableByteBuffers() {
-		return this.delegate.writableByteBuffers();
-	}
-
-	@Override
-	public InputStream asInputStream() {
-		return this.delegate.asInputStream();
-	}
-
-	@Override
-	public InputStream asInputStream(boolean releaseOnClose) {
-		return this.delegate.asInputStream(releaseOnClose);
-	}
-
-	@Override
-	public OutputStream asOutputStream() {
-		return this.delegate.asOutputStream();
-	}
-
-	@Override
-	public String toString(Charset charset) {
-		return this.delegate.toString(charset);
-	}
-
-	@Override
-	public String toString(int index, int length, Charset charset) {
-		return this.delegate.toString(index, length, charset);
-	}
-
 }
